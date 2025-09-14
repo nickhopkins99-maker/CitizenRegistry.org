@@ -18,6 +18,11 @@ class JewelryStoreApp {
       this.showAddStoreForm()
     })
 
+    // Bulk import stores button
+    document.getElementById('bulkImportStoresBtn').addEventListener('click', () => {
+      this.showStoresBulkImportForm()
+    })
+
     // Close modals
     document.getElementById('closeStoreModal').addEventListener('click', () => {
       this.closeModal('storeModal')
@@ -233,7 +238,7 @@ class JewelryStoreApp {
               <div class="flex-1">
                 <h4 class="font-medium text-blue-800 mb-1">Quick Tip: Bulk Import</h4>
                 <p class="text-sm text-blue-700 mb-2">Save time by importing multiple staff profiles from an Excel file.</p>
-                <a href="/api/excel-template" target="_blank" 
+                <a href="/api/excel-template/staff" target="_blank" 
                    class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium">
                   <i class="fas fa-download mr-1"></i>Download Excel Template
                 </a>
@@ -597,7 +602,7 @@ class JewelryStoreApp {
             <p><strong>4.</strong> Review the import results</p>
           </div>
           <div class="mt-3">
-            <a href="/api/excel-template" target="_blank" 
+            <a href="/api/excel-template/staff" target="_blank" 
                class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm transition duration-200">
               <i class="fas fa-download mr-2"></i>Download Template
             </a>
@@ -866,6 +871,391 @@ class JewelryStoreApp {
   async viewImportedStaff() {
     // Refresh store data and go back to store view
     await this.openStore(this.currentStore.store.id)
+  }
+
+  // ===== STORES BULK IMPORT FUNCTIONALITY =====
+
+  showStoresBulkImportForm() {
+    const content = `
+      <div class="space-y-6">
+        <!-- Instructions -->
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <h4 class="font-semibold text-purple-800 mb-2">
+            <i class="fas fa-info-circle mr-2"></i>Bulk Import Instructions
+          </h4>
+          <div class="text-sm text-purple-700 space-y-2">
+            <p><strong>Method 1: Excel File Upload</strong></p>
+            <p>• Download the template and fill in your store data</p>
+            <p>• Upload the Excel file (.xlsx, .xls, or .csv)</p>
+            <p><strong>Method 2: Copy & Paste</strong></p>
+            <p>• Copy data directly from Excel, Google Sheets, or any spreadsheet</p>
+            <p>• Paste into the text area below</p>
+            <p><strong>Custom Fields:</strong> Any additional columns will automatically become custom sections!</p>
+          </div>
+          <div class="mt-3 flex space-x-3">
+            <a href="/api/excel-template/stores" target="_blank" 
+               class="inline-flex items-center bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded text-sm transition duration-200">
+              <i class="fas fa-download mr-2"></i>Download Template
+            </a>
+            <button onclick="app.showSampleStoresData()" 
+                    class="inline-flex items-center bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-2 rounded text-sm transition duration-200">
+              <i class="fas fa-eye mr-2"></i>View Sample Data
+            </button>
+          </div>
+        </div>
+        
+        <!-- Import Methods Tabs -->
+        <div class="border-b border-gray-200">
+          <nav class="-mb-px flex space-x-8">
+            <button id="fileUploadTab" onclick="app.switchImportMethod('file')" 
+                    class="py-2 px-1 border-b-2 border-purple-500 font-medium text-sm text-purple-600">
+              <i class="fas fa-file-excel mr-1"></i>File Upload
+            </button>
+            <button id="copyPasteTab" onclick="app.switchImportMethod('paste')" 
+                    class="py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700">
+              <i class="fas fa-clipboard mr-1"></i>Copy & Paste
+            </button>
+          </nav>
+        </div>
+        
+        <!-- File Upload Method -->
+        <div id="fileUploadMethod" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-file-excel text-green-600 mr-1"></i>
+              Select Excel File
+            </label>
+            <input type="file" id="storesExcelFile" accept=".xlsx,.xls,.csv" 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+            <p class="text-xs text-gray-500 mt-1">Supported formats: .xlsx, .xls, .csv</p>
+          </div>
+        </div>
+        
+        <!-- Copy & Paste Method -->
+        <div id="copyPasteMethod" class="space-y-4 hidden">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-clipboard text-blue-600 mr-1"></i>
+              Paste Spreadsheet Data
+            </label>
+            <textarea id="storesPasteData" rows="8" placeholder="Paste your spreadsheet data here (including headers)...
+
+Example:
+Name	Description	Address	Phone
+Diamond Dreams	Luxury jewelry store	123 Main St	555-0123
+Golden Touch	Family jewelry	456 Oak Ave	555-0456"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono text-sm"></textarea>
+            <p class="text-xs text-gray-500 mt-1">Tip: Include headers in the first row. Tab-separated values work best.</p>
+          </div>
+        </div>
+        
+        <!-- Import Progress -->
+        <div id="storesImportProgress" class="hidden">
+          <div class="bg-gray-200 rounded-full h-2">
+            <div id="storesProgressBar" class="bg-purple-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <p id="storesProgressText" class="text-sm text-gray-600 mt-2">Processing...</p>
+        </div>
+        
+        <!-- Import Results -->
+        <div id="storesImportResults" class="hidden space-y-3"></div>
+        
+        <!-- Action Buttons -->
+        <div class="flex space-x-3 pt-4">
+          <button id="importStoresBtn" onclick="app.processStoresImport()" 
+                  class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition duration-200">
+            <i class="fas fa-upload mr-2"></i>Import Stores
+          </button>
+          <button type="button" onclick="app.closeModal('storeModal')"
+                  class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 rounded-lg transition duration-200">
+            Close
+          </button>
+        </div>
+      </div>
+    `
+    
+    document.getElementById('storeModalContent').innerHTML = content
+    this.showModal('storeModal')
+  }
+
+  switchImportMethod(method) {
+    const fileTab = document.getElementById('fileUploadTab')
+    const pasteTab = document.getElementById('copyPasteTab')
+    const fileMethod = document.getElementById('fileUploadMethod')
+    const pasteMethod = document.getElementById('copyPasteMethod')
+    
+    if (method === 'file') {
+      fileTab.className = 'py-2 px-1 border-b-2 border-purple-500 font-medium text-sm text-purple-600'
+      pasteTab.className = 'py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700'
+      fileMethod.classList.remove('hidden')
+      pasteMethod.classList.add('hidden')
+    } else {
+      pasteTab.className = 'py-2 px-1 border-b-2 border-purple-500 font-medium text-sm text-purple-600'
+      fileTab.className = 'py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700'
+      pasteMethod.classList.remove('hidden')
+      fileMethod.classList.add('hidden')
+    }
+  }
+
+  showSampleStoresData() {
+    const sampleData = `Name	Description	Address	Phone	Email	Website	Specializes In
+Diamond Dreams	Luxury diamond jewelry	123 Main St, Beverly Hills	(310) 555-0123	info@diamonddreams.com	www.diamonddreams.com	Custom Engagement Rings
+Golden Touch	Family-owned jewelry store	456 Oak Avenue, Los Angeles	(323) 555-0456	contact@goldentouch.com	www.goldentouch.com	Gold and Silver Collections
+Precious Gems Co.	Fine jewelry with rare gems	789 Sunset Blvd, West Hollywood	(424) 555-0789	hello@preciousgems.com	www.preciousgems.com	Rare Gemstones`
+    
+    document.getElementById('storesPasteData').value = sampleData
+    this.switchImportMethod('paste')
+  }
+
+  async processStoresImport() {
+    const importBtn = document.getElementById('importStoresBtn')
+    const progressDiv = document.getElementById('storesImportProgress')
+    const progressBar = document.getElementById('storesProgressBar')
+    const progressText = document.getElementById('storesProgressText')
+    const resultsDiv = document.getElementById('storesImportResults')
+    
+    const fileInput = document.getElementById('storesExcelFile')
+    const pasteData = document.getElementById('storesPasteData').value.trim()
+    
+    // Check if data is provided
+    if (!fileInput.files[0] && !pasteData) {
+      this.showNotification('Please provide data either by uploading a file or pasting spreadsheet data', 'error')
+      return
+    }
+    
+    // Show progress
+    importBtn.disabled = true
+    importBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...'
+    progressDiv.classList.remove('hidden')
+    resultsDiv.classList.add('hidden')
+    
+    try {
+      let storeData
+      
+      if (fileInput.files[0]) {
+        // File upload method
+        progressBar.style.width = '25%'
+        progressText.textContent = 'Reading Excel file...'
+        storeData = await this.parseStoresExcelFile(fileInput.files[0])
+      } else {
+        // Copy-paste method
+        progressBar.style.width = '25%'
+        progressText.textContent = 'Parsing pasted data...'
+        storeData = this.parsePastedStoresData(pasteData)
+      }
+      
+      if (!storeData || storeData.length === 0) {
+        throw new Error('No valid store data found')
+      }
+      
+      // Update progress
+      progressBar.style.width = '50%'
+      progressText.textContent = `Found ${storeData.length} stores. Importing...`
+      
+      // Send to API
+      const response = await axios.post('/api/stores/bulk-import', {
+        store_data: storeData
+      })
+      
+      // Update progress
+      progressBar.style.width = '100%'
+      progressText.textContent = 'Import completed!'
+      
+      // Show results
+      this.showStoresImportResults(response.data)
+      
+      // Success notification
+      this.showNotification(response.data.message, 'success')
+      
+    } catch (error) {
+      console.error('Import error:', error)
+      this.showNotification(`Import failed: ${error.message}`, 'error')
+      
+      // Show error in results
+      resultsDiv.innerHTML = `
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+          <h4 class="font-semibold text-red-800 mb-2">Import Failed</h4>
+          <p class="text-red-700">${error.message}</p>
+        </div>
+      `
+      resultsDiv.classList.remove('hidden')
+    } finally {
+      // Reset button
+      importBtn.disabled = false
+      importBtn.innerHTML = '<i class="fas fa-upload mr-2"></i>Import Stores'
+      
+      // Hide progress after delay
+      setTimeout(() => {
+        progressDiv.classList.add('hidden')
+        progressBar.style.width = '0%'
+      }, 2000)
+    }
+  }
+
+  async parseStoresExcelFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result)
+          const workbook = XLSX.read(data, { type: 'array' })
+          
+          // Get first worksheet
+          const firstSheetName = workbook.SheetNames[0]
+          const worksheet = workbook.Sheets[firstSheetName]
+          
+          // Convert to JSON
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+            header: 1,
+            defval: ''
+          })
+          
+          if (jsonData.length < 2) {
+            reject(new Error('Excel file must have at least a header row and one data row'))
+            return
+          }
+          
+          const storeData = this.processStoresData(jsonData)
+          resolve(storeData)
+          
+        } catch (error) {
+          reject(new Error(`Failed to parse Excel file: ${error.message}`))
+        }
+      }
+      
+      reader.onerror = () => {
+        reject(new Error('Failed to read file'))
+      }
+      
+      reader.readAsArrayBuffer(file)
+    })
+  }
+
+  parsePastedStoresData(pasteData) {
+    try {
+      // Split into rows and handle different line endings
+      const rows = pasteData.split(/\r?\n/).filter(row => row.trim())
+      
+      if (rows.length < 2) {
+        throw new Error('Pasted data must have at least a header row and one data row')
+      }
+      
+      // Split each row by tabs (most common) or commas (CSV fallback)
+      const jsonData = rows.map(row => {
+        // Try tab-separated first, then comma-separated
+        let cells = row.split('\t')
+        if (cells.length === 1) {
+          cells = row.split(',').map(cell => cell.replace(/^["']|["']$/g, '').trim())
+        }
+        return cells
+      })
+      
+      return this.processStoresData(jsonData)
+      
+    } catch (error) {
+      throw new Error(`Failed to parse pasted data: ${error.message}`)
+    }
+  }
+
+  processStoresData(jsonData) {
+    // Get headers (first row)
+    const headers = jsonData[0].map(h => String(h).toLowerCase().trim())
+    
+    // Map data rows to objects
+    const storeData = []
+    for (let i = 1; i < jsonData.length; i++) {
+      const row = jsonData[i]
+      
+      // Skip empty rows
+      if (row.every(cell => !cell || String(cell).trim() === '')) {
+        continue
+      }
+      
+      const store = {}
+      
+      // Map columns based on header names (intelligent mapping)
+      headers.forEach((header, index) => {
+        const value = row[index]
+        if (value && String(value).trim()) {
+          const cleanValue = String(value).trim()
+          
+          // Map common header variations to standard field names
+          if (header.includes('name') || header === 'store') {
+            store.name = cleanValue
+          } else if (header.includes('desc')) {
+            store.description = cleanValue
+          } else {
+            // All other fields become custom sections automatically
+            const fieldName = header.charAt(0).toUpperCase() + header.slice(1).replace(/_/g, ' ')
+            store[fieldName] = cleanValue
+          }
+        }
+      })
+      
+      if (store.name) {
+        storeData.push(store)
+      }
+    }
+    
+    return storeData
+  }
+
+  showStoresImportResults(data) {
+    const resultsDiv = document.getElementById('storesImportResults')
+    const { results } = data
+    
+    let content = `
+      <div class="bg-white border rounded-lg p-4">
+        <h4 class="font-semibold text-gray-800 mb-3">
+          <i class="fas fa-chart-bar mr-2"></i>Import Summary
+        </h4>
+        
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div class="text-center p-3 bg-green-50 border border-green-200 rounded">
+            <div class="text-2xl font-bold text-green-600">${results.successful}</div>
+            <div class="text-sm text-green-700">Successful</div>
+          </div>
+          <div class="text-center p-3 bg-red-50 border border-red-200 rounded">
+            <div class="text-2xl font-bold text-red-600">${results.failed}</div>
+            <div class="text-sm text-red-700">Failed</div>
+          </div>
+        </div>
+    `
+    
+    if (results.errors && results.errors.length > 0) {
+      content += `
+        <div class="mb-4">
+          <h5 class="font-medium text-red-800 mb-2">Errors:</h5>
+          <div class="bg-red-50 border border-red-200 rounded p-3 max-h-32 overflow-y-auto">
+            ${results.errors.map(error => `<div class="text-sm text-red-700 mb-1">• ${error}</div>`).join('')}
+          </div>
+        </div>
+      `
+    }
+    
+    if (results.successful > 0) {
+      content += `
+        <div class="mt-4">
+          <button onclick="app.viewImportedStores()" 
+                  class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition duration-200">
+            <i class="fas fa-eye mr-2"></i>View Imported Stores
+          </button>
+        </div>
+      `
+    }
+    
+    content += '</div>'
+    
+    resultsDiv.innerHTML = content
+    resultsDiv.classList.remove('hidden')
+  }
+
+  async viewImportedStores() {
+    // Refresh stores list and close modal
+    await this.loadStores()
+    this.closeModal('storeModal')
+    this.showNotification('Stores refreshed! Check out your newly imported stores below.', 'success')
   }
 
   showNotification(message, type = 'info') {

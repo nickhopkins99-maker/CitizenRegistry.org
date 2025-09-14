@@ -29,6 +29,16 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 - **Edit staff information** including profile picture updates
 - **Delete staff members** with confirmation
 
+### 📊 Excel Bulk Import (NEW!)
+- **Import multiple staff profiles** from Excel spreadsheets instantly
+- **Download Excel template** with proper formatting and sample data
+- **Support for .xlsx, .xls, and .csv** file formats
+- **Smart field mapping** automatically detects common column names
+- **Bulk custom sections import** (certifications, languages, specialties, etc.)
+- **Import validation** with detailed error reporting and success summary
+- **Progress tracking** with real-time import status updates
+- **Mobile-optimized workflow** for importing on any device
+
 ### 🎯 Dynamic Custom Sections
 - **Add unlimited custom sections** to staff profiles (certifications, languages, awards, etc.)
 - **Flexible section management** with custom names and values
@@ -79,11 +89,18 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 - **View Store**: Click anywhere on a store card to open details
 
 ### Managing Staff
-1. **From store view**, click "Add Staff" to create new profile
+1. **From store view**, click "Add Staff" to create new profile OR "Import Excel" for bulk upload
 2. **Fill in basic info**: Name, role, start year, profile picture
 3. **Click on staff member** to view full profile
 4. **Add custom sections**: Certifications, languages, specialties, etc.
 5. **Edit or delete** using the profile action buttons
+
+### Excel Bulk Import Process
+1. **Download template**: Click "Download Excel Template" for the proper format
+2. **Fill in your data**: Name and Role are required, other fields are optional
+3. **Upload file**: Select your .xlsx, .xls, or .csv file
+4. **Review results**: See import summary with success/error counts
+5. **View imported staff**: Automatically refreshes to show new profiles
 
 ### Custom Sections Examples
 - **Certifications**: "GIA Certified Gemologist"
@@ -111,6 +128,7 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 - **API Endpoints**: ✅ All functional
 - **Image Upload**: ✅ Configured for R2 storage
 - **Mobile Optimization**: ✅ Fully responsive
+- **Latest Feature**: ✨ Excel Bulk Import for Staff Profiles
 - **Last Updated**: 2025-09-14
 
 ## 📋 API Endpoints
@@ -126,6 +144,10 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 - `POST /api/stores/:storeId/staff` - Create staff member
 - `PUT /api/staff/:id` - Update staff member
 - `DELETE /api/staff/:id` - Delete staff member
+
+### Bulk Import (NEW!)
+- `POST /api/stores/:storeId/staff/bulk-import` - Import multiple staff from Excel data
+- `GET /api/excel-template` - Download Excel/CSV template with sample data
 
 ### Custom Sections
 - `POST /api/staff/:staffId/sections` - Add custom section
@@ -163,8 +185,9 @@ npm run git:log          # View commit history
 ### Immediate Enhancements
 1. **Search and filtering** for stores and staff members
 2. **Export functionality** for staff profiles (PDF/CSV)
-3. **Bulk operations** for managing multiple staff members
+3. ✅ **Bulk operations** for managing multiple staff members (Excel Import - COMPLETED!)
 4. **Profile templates** for quick staff setup
+5. **Import history** and audit trail for bulk operations
 
 ### Advanced Features
 1. **User authentication** for multi-tenant usage
