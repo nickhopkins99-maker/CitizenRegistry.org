@@ -610,25 +610,69 @@ app.get('/', (c) => {
 
           {/* Store Management Section */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-800">
-                <i className="fas fa-store text-blue-600 mr-2"></i>
-                Jewelry Stores
-              </h2>
-              <div className="flex space-x-2">
+            <div className="flex flex-col space-y-4 mb-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold text-gray-800">
+                  <i className="fas fa-store text-blue-600 mr-2"></i>
+                  Jewelry Stores
+                </h2>
+                <div className="flex space-x-2">
+                  <button 
+                    id="bulkImportStoresBtn" 
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg transition duration-200 flex items-center text-sm"
+                  >
+                    <i className="fas fa-file-excel mr-2"></i>
+                    Import Stores
+                  </button>
+                  <button 
+                    id="addStoreBtn" 
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200 flex items-center"
+                  >
+                    <i className="fas fa-plus mr-2"></i>
+                    Add Store
+                  </button>
+                </div>
+              </div>
+              
+              {/* Filter and Sort Controls */}
+              <div className="flex flex-wrap items-center gap-4 p-4 bg-gray-50 rounded-lg border">
+                <div className="flex items-center space-x-2">
+                  <i className="fas fa-filter text-gray-600"></i>
+                  <label htmlFor="storeFilter" className="text-sm font-medium text-gray-700">Filter:</label>
+                  <select 
+                    id="storeFilter" 
+                    className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="all">All Accounts</option>
+                    <option value="prospect">Prospects Only</option>
+                    <option value="active">Active Only</option>
+                  </select>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <i className="fas fa-sort text-gray-600"></i>
+                  <label htmlFor="storeSort" className="text-sm font-medium text-gray-700">Sort:</label>
+                  <select 
+                    id="storeSort" 
+                    className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="name-asc">Name (A-Z)</option>
+                    <option value="name-desc">Name (Z-A)</option>
+                    <option value="recent">Most Recent</option>
+                    <option value="oldest">Oldest First</option>
+                  </select>
+                </div>
+                
+                <div id="filterStatus" className="text-sm text-gray-600 italic">
+                  Showing all accounts
+                </div>
+                
                 <button 
-                  id="bulkImportStoresBtn" 
-                  className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg transition duration-200 flex items-center text-sm"
+                  id="clearFilters" 
+                  className="ml-auto text-sm text-blue-600 hover:text-blue-800 underline"
+                  style={{display: 'none'}}
                 >
-                  <i className="fas fa-file-excel mr-2"></i>
-                  Import Stores
-                </button>
-                <button 
-                  id="addStoreBtn" 
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200 flex items-center"
-                >
-                  <i className="fas fa-plus mr-2"></i>
-                  Add Store
+                  Clear Filters
                 </button>
               </div>
             </div>

@@ -23,6 +23,19 @@ class JewelryStoreApp {
       this.showStoresBulkImportForm()
     })
 
+    // Filter and sort controls
+    document.getElementById('storeFilter').addEventListener('change', () => {
+      this.applyFiltersAndSort()
+    })
+
+    document.getElementById('storeSort').addEventListener('change', () => {
+      this.applyFiltersAndSort()
+    })
+
+    document.getElementById('clearFilters').addEventListener('click', () => {
+      this.clearFilters()
+    })
+
     // Close modals
     document.getElementById('closeStoreModal').addEventListener('click', () => {
       this.closeModal('storeModal')
@@ -47,6 +60,11 @@ class JewelryStoreApp {
       const response = await axios.get('/api/stores')
       this.stores = response.data
       this.renderStores()
+      
+      // Apply any existing filters after loading
+      if (document.getElementById('storeFilter')) {
+        this.applyFiltersAndSort()
+      }
     } catch (error) {
       console.error('Error loading stores:', error)
       this.showNotification('Error loading stores', 'error')
@@ -71,6 +89,9 @@ class JewelryStoreApp {
   }
 
   renderStores() {
+    // Apply current filters and sort before rendering
+    const filteredAndSortedStores = this.getFilteredAndSortedStores()
+    
     const storesList = document.getElementById('storesList')
     
     if (this.stores.length === 0) {
@@ -83,7 +104,20 @@ class JewelryStoreApp {
       return
     }
 
-    storesList.innerHTML = this.stores.map(store => `
+    if (filteredAndSortedStores.length === 0) {
+      storesList.innerHTML = `
+        <div class="text-center text-gray-500 py-8">
+          <i class="fas fa-filter text-4xl mb-4"></i>
+          <p>No accounts match your current filters.</p>
+          <button onclick="app.clearFilters()" class="mt-2 text-blue-600 hover:text-blue-800 underline">
+            Clear filters to see all accounts
+          </button>
+        </div>
+      `
+      return
+    }
+
+    storesList.innerHTML = filteredAndSortedStores.map(store => `
       <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition duration-200 cursor-pointer" 
            onclick="app.openStore(${store.id})">
         <div class="flex items-center justify-between">
@@ -1274,6 +1308,116 @@ Precious Gems Co.	Michael Chen	(424) 555-0789	789 Sunset Blvd, West Hollywood, C
     await this.loadStores()
     this.closeModal('storeModal')
     this.showNotification('Stores refreshed! Check out your newly imported stores below.', 'success')
+  }
+
+  // ===== FILTER AND SORT FUNCTIONALITY =====
+
+  getFilteredAndSortedStores() {
+    let filteredStores = [...this.stores]
+    
+    // Apply filter
+    const filterValue = document.getElementById('storeFilter').value
+    
+    if (filterValue === 'prospect') {
+      filteredStores = filteredStores.filter(store => 
+        store.name && store.name.toLowerCase().includes('prospect')
+      )
+    } else if (filterValue === 'active') {
+      filteredStores = filteredStores.filter(store => {
+        // Check if store has "Active" status in custom sections
+        if (store.custom_sections && Array.isArray(store.custom_sections)) {
+          const statusSection = store.custom_sections.find(section => 
+            section.section_name.toLowerCase() === 'status'
+          )
+          return statusSection && statusSection.section_value.toLowerCase() === 'active'
+        }
+        return false
+      })
+    }
+    
+    // Apply sort
+    const sortValue = document.getElementById('storeSort').value
+    
+    switch(sortValue) {
+      case 'name-asc':
+        filteredStores.sort((a, b) => a.name.localeCompare(b.name))
+        break
+      case 'name-desc':
+        filteredStores.sort((a, b) => b.name.localeCompare(a.name))
+        break
+      case 'recent':
+        filteredStores.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        break
+      case 'oldest':
+        filteredStores.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+        break
+      default:
+        // Default to name ascending
+        filteredStores.sort((a, b) => a.name.localeCompare(b.name))
+    }
+    
+    return filteredStores
+  }
+
+  applyFiltersAndSort() {
+    const filterValue = document.getElementById('storeFilter').value
+    const sortValue = document.getElementById('storeSort').value
+    const filterStatus = document.getElementById('filterStatus')
+    const clearFiltersBtn = document.getElementById('clearFilters')
+    
+    // Update filter status display
+    let statusText = ''
+    let hasActiveFilters = false
+    
+    if (filterValue === 'prospect') {
+      statusText = 'Showing prospects only'
+      hasActiveFilters = true
+    } else if (filterValue === 'active') {
+      statusText = 'Showing active accounts only'
+      hasActiveFilters = true
+    } else {
+      statusText = 'Showing all accounts'
+    }
+    
+    // Add sort info
+    switch(sortValue) {
+      case 'name-asc':
+        statusText += ' (A-Z)'
+        break
+      case 'name-desc':
+        statusText += ' (Z-A)'
+        break
+      case 'recent':
+        statusText += ' (newest first)'
+        break
+      case 'oldest':
+        statusText += ' (oldest first)'
+        break
+    }
+    
+    filterStatus.textContent = statusText
+    
+    // Show/hide clear filters button
+    if (hasActiveFilters) {
+      clearFiltersBtn.style.display = 'block'
+    } else {
+      clearFiltersBtn.style.display = 'none'
+    }
+    
+    // Re-render stores with new filters
+    this.renderStores()
+    
+    // Update count
+    const filteredStores = this.getFilteredAndSortedStores()
+    if (filteredStores.length !== this.stores.length) {
+      filterStatus.textContent += ` (${filteredStores.length} of ${this.stores.length})`
+    }
+  }
+
+  clearFilters() {
+    document.getElementById('storeFilter').value = 'all'
+    document.getElementById('storeSort').value = 'name-asc'
+    this.applyFiltersAndSort()
   }
 
   showNotification(message, type = 'info') {
