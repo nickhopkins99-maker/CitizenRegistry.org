@@ -53,6 +53,23 @@ class JewelryStoreApp {
     }
   }
 
+  getStoreAddress(store) {
+    if (!store.custom_sections || !Array.isArray(store.custom_sections)) {
+      return null
+    }
+    
+    // Look for address-related sections
+    const addressSection = store.custom_sections.find(section => {
+      const sectionName = section.section_name.toLowerCase()
+      return sectionName.includes('address') || 
+             sectionName.includes('location') || 
+             sectionName === 'address' ||
+             sectionName === 'store address'
+    })
+    
+    return addressSection ? addressSection.section_value : null
+  }
+
   renderStores() {
     const storesList = document.getElementById('storesList')
     
@@ -79,7 +96,7 @@ class JewelryStoreApp {
             }
             <div>
               <h3 class="font-semibold text-gray-800">${store.name}</h3>
-              <p class="text-sm text-gray-600">${store.description || 'No description'}</p>
+              <p class="text-sm text-gray-600">${this.getStoreAddress(store) || 'No address available'}</p>
             </div>
           </div>
           <div class="flex space-x-2">

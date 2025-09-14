@@ -1,12 +1,12 @@
 # 💎 Jewelry Store Profile Manager
 
-A mobile-optimized web application for managing jewelry store accounts and staff profiles. Built with Hono framework and designed for Cloudflare Pages deployment.
+A mobile-optimized web application for managing jewelry store accounts and staff profiles with comprehensive Excel bulk import capabilities. Built with Hono framework and designed for Cloudflare Pages deployment.
 
 ## 🎯 Project Overview
 
 - **Name**: Jewelry Store Profile Manager
-- **Goal**: Streamline jewelry store management with comprehensive staff profiling
-- **Features**: Store management, staff profiles, image uploads, dynamic custom sections
+- **Goal**: Streamline jewelry store management with comprehensive staff profiling and account management
+- **Features**: Store management, staff profiles, Excel/copy-paste bulk import, automatic custom section creation
 - **Target**: Mobile-first responsive design for on-the-go management
 
 ## 🌐 URLs
@@ -19,15 +19,11 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 
 ### 🏪 Store Management
 - **Add new jewelry stores** with name, description, and logo upload
-- **Edit store information** including logo updates
+- **Import stores from Excel** with comprehensive account profile data
+- **Copy-paste functionality** - directly paste from Excel, Google Sheets, or any spreadsheet
+- **Edit store information** including logo updates and custom sections
 - **Delete stores** (cascades to remove all associated staff)
 - **Browse all stores** in an organized card layout
-
-### 👥 Staff Profile Management
-- **Add staff members** with name, role, start year, and profile picture
-- **View detailed staff profiles** with all information and custom sections
-- **Edit staff information** including profile picture updates
-- **Delete staff members** with confirmation
 
 ### 📊 Excel Bulk Import (ENHANCED!)
 - **Import multiple jewelry stores** from Excel spreadsheets with automatic custom section creation
@@ -42,8 +38,15 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 - **Progress tracking** with real-time import status updates
 - **Mobile-optimized workflow** for importing on any device
 
+### 👥 Staff Profile Management
+- **Add staff members** with name, role, start year, and profile picture
+- **View detailed staff profiles** with all information and custom sections
+- **Edit staff information** including profile picture updates
+- **Delete staff members** with confirmation
+
 ### 🎯 Dynamic Custom Sections
-- **Add unlimited custom sections** to staff profiles (certifications, languages, awards, etc.)
+- **Add unlimited custom sections** to both stores and staff profiles
+- **Automatic creation from Excel headers** - any unknown columns become custom sections
 - **Flexible section management** with custom names and values
 - **Organized display** with proper ordering and management controls
 - **Easy deletion** of unwanted sections
@@ -82,7 +85,7 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 
 ### Getting Started
 1. **Open the app** in your mobile browser or desktop
-2. **Add your first jewelry store** by clicking "Add Store"
+2. **Add your first jewelry store** by clicking "Add Store" OR use "Import Stores" for bulk setup
 3. **Fill in store details** and optionally upload a logo
 4. **Click on a store** to view details and manage staff
 
@@ -105,7 +108,7 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 #### For Jewelry Stores:
 1. **Access import**: Click "Import Stores" on the main page
 2. **Choose method**: File upload or copy-paste from spreadsheet
-3. **Download template**: Get stores template with sample data including custom fields
+3. **Download template**: Get stores template with sample account profile data
 4. **Import data**: Upload file or paste directly from Excel/Google Sheets
 5. **Auto-sections**: Any additional columns automatically become custom store sections
 
@@ -124,12 +127,19 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 - **Custom fields auto-created** - any unknown columns become custom sections
 - **Sample data provided** - click "View Sample Data" for examples
 
-### Custom Sections Examples
-- **Certifications**: "GIA Certified Gemologist"
-- **Languages**: "English, Spanish, French"
-- **Specialties**: "Vintage Jewelry Restoration"
-- **Awards**: "Salesperson of the Year 2023"
-- **Education**: "Gemology Institute Graduate"
+### Excel Template Formats
+
+**Account Profiles Template:**
+```
+Account | Contact | Phone Number | Store Address | Website | Facebook Link | Email Address | Monday Store Hours | Tuesday Store Hours | Wednesday Store Hours | Thursday Store Hours | Friday Store Hours | Saturday Store Hours | Sunday Store Hours | Notes | Net Sales FY 2025 | Net Sales FY 2024 | Net Sales FY 2023 | 23 + '24 | Status
+```
+
+**Staff Profiles Template:**
+```
+Name | Role | Year Started | Certifications | Languages | Specialties | Education | Awards | Experience | Phone | Email | Notes
+```
+
+**Custom Fields:** Any additional columns you add will automatically become custom sections!
 
 ## 🛠️ Tech Stack
 
@@ -138,6 +148,7 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 - **Styling**: TailwindCSS (CDN) + Custom CSS for mobile optimization
 - **Icons**: Font Awesome 6.0 for consistent iconography
 - **HTTP Client**: Axios for API communication
+- **Excel Processing**: SheetJS for file parsing and copy-paste support
 - **Database**: Cloudflare D1 (globally distributed SQLite)
 - **File Storage**: Cloudflare R2 (S3-compatible object storage)
 - **Deployment**: Cloudflare Pages with edge computing
@@ -149,35 +160,39 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 - **Local Database**: ✅ Initialized with sample data
 - **API Endpoints**: ✅ All functional
 - **Image Upload**: ✅ Configured for R2 storage
+- **Excel Import**: ✅ Both file upload and copy-paste working
 - **Mobile Optimization**: ✅ Fully responsive
-- **Latest Feature**: ✨ Comprehensive Excel Import with Copy-Paste Support for Stores & Staff
+- **Latest Feature**: ✨ Account Profile Template with Financial Data
 - **Last Updated**: 2025-09-14
 
 ## 📋 API Endpoints
 
 ### Stores
-- `GET /api/stores` - Get all stores
+- `GET /api/stores` - Get all stores with custom sections
 - `GET /api/stores/:id` - Get store with staff
 - `POST /api/stores` - Create new store
 - `PUT /api/stores/:id` - Update store
 - `DELETE /api/stores/:id` - Delete store
+
+### Bulk Import (ENHANCED!)
+- `POST /api/stores/bulk-import` - Import multiple stores from Excel data with auto-sections
+- `POST /api/stores/:storeId/staff/bulk-import` - Import multiple staff from Excel data with auto-sections
+- `GET /api/excel-template/stores` - Download account profiles Excel/CSV template
+- `GET /api/excel-template/staff` - Download staff Excel/CSV template with sample data
+- `GET /api/excel-template` - Legacy endpoint (redirects to staff template)
 
 ### Staff
 - `POST /api/stores/:storeId/staff` - Create staff member
 - `PUT /api/staff/:id` - Update staff member
 - `DELETE /api/staff/:id` - Delete staff member
 
-### Bulk Import (ENHANCED!)
-- `POST /api/stores/bulk-import` - Import multiple stores from Excel data with auto-sections
-- `POST /api/stores/:storeId/staff/bulk-import` - Import multiple staff from Excel data with auto-sections
-- `GET /api/excel-template/stores` - Download stores Excel/CSV template with sample data
-- `GET /api/excel-template/staff` - Download staff Excel/CSV template with sample data
-- `GET /api/excel-template` - Legacy endpoint (redirects to staff template)
-
 ### Custom Sections
-- `POST /api/staff/:staffId/sections` - Add custom section
-- `PUT /api/staff/sections/:id` - Update section
-- `DELETE /api/staff/sections/:id` - Delete section
+- `POST /api/stores/:storeId/sections` - Add store custom section
+- `PUT /api/stores/sections/:id` - Update store section
+- `DELETE /api/stores/sections/:id` - Delete store section
+- `POST /api/staff/:staffId/sections` - Add staff custom section
+- `PUT /api/staff/sections/:id` - Update staff section
+- `DELETE /api/staff/sections/:id` - Delete staff section
 
 ### File Upload
 - `POST /api/upload` - Upload image file
@@ -217,9 +232,10 @@ npm run git:log          # View commit history
 ### Advanced Features
 1. **User authentication** for multi-tenant usage
 2. **Role-based permissions** for different user levels
-3. **Analytics dashboard** for store performance metrics
+3. **Analytics dashboard** for store performance metrics and sales data
 4. **Integration APIs** with jewelry management systems
 5. **Offline mode** with data synchronization
+6. **Financial reporting** using the imported sales data
 
 ### Production Deployment
 1. **Configure Cloudflare API key** for production deployment
@@ -235,11 +251,21 @@ npm run git:log          # View commit history
 - **File upload restrictions** (images only, size limits)
 - **SQL injection protection** through prepared statements
 - **XSS prevention** through proper data handling
+- **Data sanitization** for all Excel imports
+
+## 🎯 Perfect For
+
+- 💎 **Jewelry store owners** managing multiple locations with detailed account profiles
+- 👥 **HR managers** tracking employee information with custom fields
+- 📋 **Store managers** organizing staff profiles and store data
+- 📊 **Franchise managers** importing data from corporate systems
+- 🔄 **System migrations** from other jewelry management software
+- 📱 **Mobile-first business management** with comprehensive import capabilities
 
 ## 📞 Support
 
-The app includes comprehensive error handling and user-friendly notifications. All actions provide immediate feedback, and the mobile-optimized design ensures smooth operation across all devices.
+The app includes comprehensive error handling and user-friendly notifications. All actions provide immediate feedback, and the mobile-optimized design ensures smooth operation across all devices. The enhanced Excel import system makes bulk data entry effortless with automatic custom section creation.
 
 ---
 
-*Built with ❤️ for jewelry store professionals who value efficiency and elegant design*
+*Built with ❤️ for jewelry store professionals who value efficiency, elegant design, and powerful data management capabilities*
