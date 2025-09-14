@@ -214,10 +214,31 @@ class JewelryStoreApp {
               <i class="fas fa-users text-green-600 mr-2"></i>
               Staff Members
             </h3>
-            <button onclick="app.showAddStaffForm(${store.id})" 
-                    class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm transition duration-200">
-              <i class="fas fa-plus mr-1"></i>Add Staff
-            </button>
+            <div class="flex space-x-2">
+              <button onclick="app.showBulkImportForm(${store.id})" 
+                      class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-sm transition duration-200">
+                <i class="fas fa-file-excel mr-1"></i>Import Excel
+              </button>
+              <button onclick="app.showAddStaffForm(${store.id})" 
+                      class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm transition duration-200">
+                <i class="fas fa-plus mr-1"></i>Add Staff
+              </button>
+            </div>
+          </div>
+          
+          <!-- Bulk Import Instructions -->
+          <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="flex items-start space-x-3">
+              <i class="fas fa-info-circle text-blue-600 mt-1"></i>
+              <div class="flex-1">
+                <h4 class="font-medium text-blue-800 mb-1">Quick Tip: Bulk Import</h4>
+                <p class="text-sm text-blue-700 mb-2">Save time by importing multiple staff profiles from an Excel file.</p>
+                <a href="/api/excel-template" target="_blank" 
+                   class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium">
+                  <i class="fas fa-download mr-1"></i>Download Excel Template
+                </a>
+              </div>
+            </div>
           </div>
           
           <div class="space-y-3">
@@ -557,6 +578,294 @@ class JewelryStoreApp {
   closeModal(modalId) {
     document.getElementById(modalId).classList.add('hidden')
     document.body.style.overflow = 'auto'
+  }
+
+  showBulkImportForm(storeId) {
+    this.closeModal('storeModal')
+    
+    const content = `
+      <div class="space-y-6">
+        <!-- Instructions -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h4 class="font-semibold text-blue-800 mb-2">
+            <i class="fas fa-info-circle mr-2"></i>Excel Import Instructions
+          </h4>
+          <div class="text-sm text-blue-700 space-y-2">
+            <p><strong>1.</strong> Download the Excel template to see the required format</p>
+            <p><strong>2.</strong> Fill in your staff data (Name and Role are required)</p>
+            <p><strong>3.</strong> Upload the Excel file (.xlsx, .xls, or .csv)</p>
+            <p><strong>4.</strong> Review the import results</p>
+          </div>
+          <div class="mt-3">
+            <a href="/api/excel-template" target="_blank" 
+               class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm transition duration-200">
+              <i class="fas fa-download mr-2"></i>Download Template
+            </a>
+          </div>
+        </div>
+        
+        <!-- File Upload -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            <i class="fas fa-file-excel text-green-600 mr-1"></i>
+            Select Excel File
+          </label>
+          <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+          <p class="text-xs text-gray-500 mt-1">Supported formats: .xlsx, .xls, .csv</p>
+        </div>
+        
+        <!-- Import Progress -->
+        <div id="importProgress" class="hidden">
+          <div class="bg-gray-200 rounded-full h-2">
+            <div id="progressBar" class="bg-purple-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <p id="progressText" class="text-sm text-gray-600 mt-2">Processing...</p>
+        </div>
+        
+        <!-- Import Results -->
+        <div id="importResults" class="hidden space-y-3"></div>
+        
+        <!-- Action Buttons -->
+        <div class="flex space-x-3 pt-4">
+          <button id="importBtn" onclick="app.processExcelImport(${storeId})" 
+                  class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition duration-200">
+            <i class="fas fa-upload mr-2"></i>Import Staff Data
+          </button>
+          <button type="button" onclick="app.backToStore()"
+                  class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 rounded-lg transition duration-200">
+            Back to Store
+          </button>
+        </div>
+      </div>
+    `
+    
+    document.getElementById('staffModalContent').innerHTML = content
+    this.showModal('staffModal')
+  }
+
+  async processExcelImport(storeId) {
+    const fileInput = document.getElementById('excelFile')
+    const importBtn = document.getElementById('importBtn')
+    const progressDiv = document.getElementById('importProgress')
+    const progressBar = document.getElementById('progressBar')
+    const progressText = document.getElementById('progressText')
+    const resultsDiv = document.getElementById('importResults')
+    
+    if (!fileInput.files[0]) {
+      this.showNotification('Please select an Excel file first', 'error')
+      return
+    }
+    
+    const file = fileInput.files[0]
+    
+    // Show progress
+    importBtn.disabled = true
+    importBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...'
+    progressDiv.classList.remove('hidden')
+    resultsDiv.classList.add('hidden')
+    
+    try {
+      // Update progress
+      progressBar.style.width = '25%'
+      progressText.textContent = 'Reading Excel file...'
+      
+      // Read and parse Excel file
+      const staffData = await this.parseExcelFile(file)
+      
+      if (!staffData || staffData.length === 0) {
+        throw new Error('No valid data found in Excel file')
+      }
+      
+      // Update progress
+      progressBar.style.width = '50%'
+      progressText.textContent = `Found ${staffData.length} staff records. Importing...`
+      
+      // Send to API
+      const response = await axios.post(`/api/stores/${storeId}/staff/bulk-import`, {
+        staff_data: staffData
+      })
+      
+      // Update progress
+      progressBar.style.width = '100%'
+      progressText.textContent = 'Import completed!'
+      
+      // Show results
+      this.showImportResults(response.data)
+      
+      // Success notification
+      this.showNotification(response.data.message, 'success')
+      
+    } catch (error) {
+      console.error('Import error:', error)
+      this.showNotification(`Import failed: ${error.message}`, 'error')
+      
+      // Show error in results
+      resultsDiv.innerHTML = `
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+          <h4 class="font-semibold text-red-800 mb-2">Import Failed</h4>
+          <p class="text-red-700">${error.message}</p>
+        </div>
+      `
+      resultsDiv.classList.remove('hidden')
+    } finally {
+      // Reset button
+      importBtn.disabled = false
+      importBtn.innerHTML = '<i class="fas fa-upload mr-2"></i>Import Staff Data'
+      
+      // Hide progress after delay
+      setTimeout(() => {
+        progressDiv.classList.add('hidden')
+        progressBar.style.width = '0%'
+      }, 2000)
+    }
+  }
+
+  async parseExcelFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result)
+          const workbook = XLSX.read(data, { type: 'array' })
+          
+          // Get first worksheet
+          const firstSheetName = workbook.SheetNames[0]
+          const worksheet = workbook.Sheets[firstSheetName]
+          
+          // Convert to JSON
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+            header: 1,
+            defval: ''
+          })
+          
+          if (jsonData.length < 2) {
+            reject(new Error('Excel file must have at least a header row and one data row'))
+            return
+          }
+          
+          // Get headers (first row)
+          const headers = jsonData[0].map(h => String(h).toLowerCase().trim())
+          
+          // Map data rows to objects
+          const staffData = []
+          for (let i = 1; i < jsonData.length; i++) {
+            const row = jsonData[i]
+            
+            // Skip empty rows
+            if (row.every(cell => !cell || String(cell).trim() === '')) {
+              continue
+            }
+            
+            const staffMember = {}
+            
+            // Map columns based on header names
+            headers.forEach((header, index) => {
+              const value = row[index]
+              if (value && String(value).trim()) {
+                // Map common header variations to standard field names
+                if (header.includes('name')) {
+                  staffMember.name = String(value).trim()
+                } else if (header.includes('role') || header.includes('position') || header.includes('title')) {
+                  staffMember.role = String(value).trim()
+                } else if (header.includes('year') && header.includes('start')) {
+                  staffMember.year_started = value
+                } else if (header.includes('cert')) {
+                  staffMember.certifications = String(value).trim()
+                } else if (header.includes('lang')) {
+                  staffMember.languages = String(value).trim()
+                } else if (header.includes('special')) {
+                  staffMember.specialties = String(value).trim()
+                } else if (header.includes('edu')) {
+                  staffMember.education = String(value).trim()
+                } else if (header.includes('award')) {
+                  staffMember.awards = String(value).trim()
+                } else if (header.includes('exp')) {
+                  staffMember.experience = String(value).trim()
+                } else if (header.includes('phone')) {
+                  staffMember.phone = String(value).trim()
+                } else if (header.includes('email')) {
+                  staffMember.email = String(value).trim()
+                } else if (header.includes('note')) {
+                  staffMember.notes = String(value).trim()
+                }
+              }
+            })
+            
+            if (staffMember.name && staffMember.role) {
+              staffData.push(staffMember)
+            }
+          }
+          
+          resolve(staffData)
+          
+        } catch (error) {
+          reject(new Error(`Failed to parse Excel file: ${error.message}`))
+        }
+      }
+      
+      reader.onerror = () => {
+        reject(new Error('Failed to read file'))
+      }
+      
+      reader.readAsArrayBuffer(file)
+    })
+  }
+
+  showImportResults(data) {
+    const resultsDiv = document.getElementById('importResults')
+    const { results } = data
+    
+    let content = `
+      <div class="bg-white border rounded-lg p-4">
+        <h4 class="font-semibold text-gray-800 mb-3">
+          <i class="fas fa-chart-bar mr-2"></i>Import Summary
+        </h4>
+        
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div class="text-center p-3 bg-green-50 border border-green-200 rounded">
+            <div class="text-2xl font-bold text-green-600">${results.successful}</div>
+            <div class="text-sm text-green-700">Successful</div>
+          </div>
+          <div class="text-center p-3 bg-red-50 border border-red-200 rounded">
+            <div class="text-2xl font-bold text-red-600">${results.failed}</div>
+            <div class="text-sm text-red-700">Failed</div>
+          </div>
+        </div>
+    `
+    
+    if (results.errors && results.errors.length > 0) {
+      content += `
+        <div class="mb-4">
+          <h5 class="font-medium text-red-800 mb-2">Errors:</h5>
+          <div class="bg-red-50 border border-red-200 rounded p-3 max-h-32 overflow-y-auto">
+            ${results.errors.map(error => `<div class="text-sm text-red-700 mb-1">• ${error}</div>`).join('')}
+          </div>
+        </div>
+      `
+    }
+    
+    if (results.successful > 0) {
+      content += `
+        <div class="mt-4">
+          <button onclick="app.viewImportedStaff()" 
+                  class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition duration-200">
+            <i class="fas fa-eye mr-2"></i>View Imported Staff Members
+          </button>
+        </div>
+      `
+    }
+    
+    content += '</div>'
+    
+    resultsDiv.innerHTML = content
+    resultsDiv.classList.remove('hidden')
+  }
+
+  async viewImportedStaff() {
+    // Refresh store data and go back to store view
+    await this.openStore(this.currentStore.store.id)
   }
 
   showNotification(message, type = 'info') {

@@ -188,6 +188,114 @@ app.delete('/api/staff/:id', async (c) => {
   return c.json({ success: true })
 })
 
+// Bulk import staff members from Excel data
+app.post('/api/stores/:storeId/staff/bulk-import', async (c) => {
+  const { env } = c
+  const storeId = c.req.param('storeId')
+  const { staff_data } = await c.req.json()
+  await initDB(env.DB)
+  
+  const results = {
+    successful: 0,
+    failed: 0,
+    errors: [] as string[],
+    created_ids: [] as number[]
+  }
+  
+  // Validate store exists
+  const store = await env.DB.prepare('SELECT id FROM stores WHERE id = ?').bind(storeId).first()
+  if (!store) {
+    return c.json({ error: 'Store not found' }, 404)
+  }
+  
+  // Process each staff member
+  for (let i = 0; i < staff_data.length; i++) {
+    const staff = staff_data[i]
+    const rowNum = i + 2 // Excel row number (assuming row 1 is headers)
+    
+    try {
+      // Validate required fields
+      if (!staff.name || !staff.role) {
+        results.failed++
+        results.errors.push(`Row ${rowNum}: Name and Role are required`)
+        continue
+      }
+      
+      // Clean and validate data
+      const name = String(staff.name).trim()
+      const role = String(staff.role).trim()
+      const year_started = staff.year_started ? parseInt(String(staff.year_started)) : null
+      
+      // Validate year_started if provided
+      if (year_started && (year_started < 1900 || year_started > 2030)) {
+        results.failed++
+        results.errors.push(`Row ${rowNum}: Invalid year started (${year_started}). Must be between 1900-2030`)
+        continue
+      }
+      
+      // Insert staff member
+      const result = await env.DB.prepare(`
+        INSERT INTO staff (store_id, name, role, year_started) 
+        VALUES (?, ?, ?, ?)
+      `).bind(storeId, name, role, year_started).run()
+      
+      const staffId = result.meta.last_row_id as number
+      results.created_ids.push(staffId)
+      
+      // Add custom sections if provided
+      const customSections = [
+        { name: 'Certifications', value: staff.certifications },
+        { name: 'Languages', value: staff.languages },
+        { name: 'Specialties', value: staff.specialties },
+        { name: 'Education', value: staff.education },
+        { name: 'Awards', value: staff.awards },
+        { name: 'Experience', value: staff.experience },
+        { name: 'Phone', value: staff.phone },
+        { name: 'Email', value: staff.email },
+        { name: 'Notes', value: staff.notes }
+      ]
+      
+      for (let j = 0; j < customSections.length; j++) {
+        const section = customSections[j]
+        if (section.value && String(section.value).trim()) {
+          await env.DB.prepare(`
+            INSERT INTO staff_custom_sections (staff_id, section_name, section_value, section_order)
+            VALUES (?, ?, ?, ?)
+          `).bind(staffId, section.name, String(section.value).trim(), j).run()
+        }
+      }
+      
+      results.successful++
+      
+    } catch (error) {
+      results.failed++
+      results.errors.push(`Row ${rowNum}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      console.error(`Error importing staff member at row ${rowNum}:`, error)
+    }
+  }
+  
+  return c.json({
+    message: `Import completed. ${results.successful} successful, ${results.failed} failed.`,
+    results
+  })
+})
+
+// Download Excel template
+app.get('/api/excel-template', (c) => {
+  // Create CSV template that can be opened in Excel
+  const template = `Name,Role,Year Started,Certifications,Languages,Specialties,Education,Awards,Experience,Phone,Email,Notes
+"Sarah Johnson","Store Manager",2018,"GIA Certified","English, Spanish","Customer Relations","Business Management Degree","Employee of the Year 2022","5+ years retail management","(555) 123-4567","sarah@example.com","Excellent with customer service"
+"Mike Chen","Sales Associate",2020,"","English, Mandarin","Luxury Sales","","Top Salesperson 2023","3 years jewelry sales","(555) 234-5678","mike@example.com","Specializes in engagement rings"
+"Emma Rodriguez","Jewelry Designer",2019,"CAD Certification","English","Custom Design","BFA Jewelry Design","JCK Rising Stars 2021","4 years design experience","(555) 345-6789","emma@example.com","Creates beautiful custom pieces"`
+
+  return new Response(template, {
+    headers: {
+      'Content-Type': 'text/csv',
+      'Content-Disposition': 'attachment; filename="jewelry-store-staff-template.csv"'
+    }
+  })
+})
+
 // Add custom section to staff
 app.post('/api/staff/:staffId/sections', async (c) => {
   const { env } = c
@@ -353,6 +461,7 @@ app.get('/', (c) => {
       <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
       <script src="https://cdn.tailwindcss.com"></script>
       <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
       <script src="/static/app.js"></script>
     </div>
   )
