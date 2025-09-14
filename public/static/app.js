@@ -941,9 +941,9 @@ class JewelryStoreApp {
             <textarea id="storesPasteData" rows="8" placeholder="Paste your spreadsheet data here (including headers)...
 
 Example:
-Name	Description	Address	Phone
-Diamond Dreams	Luxury jewelry store	123 Main St	555-0123
-Golden Touch	Family jewelry	456 Oak Ave	555-0456"
+Account	Contact	Phone Number	Store Address	Notes
+Diamond Dreams	Sarah Johnson	(310) 555-0123	123 Main St, Beverly Hills	Luxury jewelry store
+Golden Touch	David Williams	(323) 555-0456	456 Oak Ave, Los Angeles	Family jewelry store"
                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono text-sm"></textarea>
             <p class="text-xs text-gray-500 mt-1">Tip: Include headers in the first row. Tab-separated values work best.</p>
           </div>
@@ -998,10 +998,10 @@ Golden Touch	Family jewelry	456 Oak Ave	555-0456"
   }
 
   showSampleStoresData() {
-    const sampleData = `Name	Description	Address	Phone	Email	Website	Specializes In
-Diamond Dreams	Luxury diamond jewelry	123 Main St, Beverly Hills	(310) 555-0123	info@diamonddreams.com	www.diamonddreams.com	Custom Engagement Rings
-Golden Touch	Family-owned jewelry store	456 Oak Avenue, Los Angeles	(323) 555-0456	contact@goldentouch.com	www.goldentouch.com	Gold and Silver Collections
-Precious Gems Co.	Fine jewelry with rare gems	789 Sunset Blvd, West Hollywood	(424) 555-0789	hello@preciousgems.com	www.preciousgems.com	Rare Gemstones`
+    const sampleData = `Account	Contact	Phone Number	Store Address	Website	Facebook Link	Email Address	Monday Store Hours	Tuesday Store Hours	Wednesday Store Hours	Thursday Store Hours	Friday Store Hours	Saturday Store Hours	Sunday Store Hours	Notes	Net Sales FY 2025	Net Sales FY 2024	Net Sales FY 2023	23 + '24	Status
+Diamond Dreams	Sarah Johnson	(310) 555-0123	123 Main St, Beverly Hills, CA 90210	www.diamonddreams.com	facebook.com/diamonddreams	info@diamonddreams.com	10:00 AM - 7:00 PM	10:00 AM - 7:00 PM	10:00 AM - 7:00 PM	10:00 AM - 7:00 PM	10:00 AM - 8:00 PM	9:00 AM - 6:00 PM	12:00 PM - 5:00 PM	Luxury diamond jewelry and custom engagement rings	$485000	$420000	$385000	$805000	Active
+Golden Touch Jewelry	David Williams	(323) 555-0456	456 Oak Avenue, Los Angeles, CA 90028	www.goldentouch.com	facebook.com/goldentouch	contact@goldentouch.com	9:00 AM - 6:00 PM	9:00 AM - 6:00 PM	9:00 AM - 6:00 PM	9:00 AM - 6:00 PM	9:00 AM - 7:00 PM	9:00 AM - 6:00 PM	Closed	Family-owned jewelry store specializing in gold and silver pieces	$325000	$298000	$276000	$574000	Active
+Precious Gems Co.	Michael Chen	(424) 555-0789	789 Sunset Blvd, West Hollywood, CA 90069	www.preciousgems.com	facebook.com/preciousgems	hello@preciousgems.com	11:00 AM - 8:00 PM	11:00 AM - 8:00 PM	11:00 AM - 8:00 PM	11:00 AM - 8:00 PM	11:00 AM - 8:00 PM	10:00 AM - 6:00 PM	Closed	Fine jewelry with rare gemstones and vintage collections	$295000	$310000	$285000	$595000	Active`
     
     document.getElementById('storesPasteData').value = sampleData
     this.switchImportMethod('paste')
@@ -1181,19 +1181,20 @@ Precious Gems Co.	Fine jewelry with rare gems	789 Sunset Blvd, West Hollywood	(4
           const cleanValue = String(value).trim()
           
           // Map common header variations to standard field names
-          if (header.includes('name') || header === 'store') {
-            store.name = cleanValue
-          } else if (header.includes('desc')) {
-            store.description = cleanValue
+          if (header.includes('account') || header.includes('name') || header === 'store') {
+            store.Account = cleanValue
+          } else if (header.includes('desc') || header.includes('notes')) {
+            store.Notes = cleanValue
           } else {
             // All other fields become custom sections automatically
-            const fieldName = header.charAt(0).toUpperCase() + header.slice(1).replace(/_/g, ' ')
-            store[fieldName] = cleanValue
+            // Preserve original header name for better mapping
+            const originalHeader = jsonData[0][index] // Get original case
+            store[originalHeader] = cleanValue
           }
         }
       })
       
-      if (store.name) {
+      if (store.Account || store.name) {
         storeData.push(store)
       }
     }

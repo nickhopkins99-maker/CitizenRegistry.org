@@ -203,15 +203,16 @@ app.post('/api/stores/bulk-import', async (c) => {
     
     try {
       // Validate required fields
-      if (!store.name) {
+      if (!store.Account && !store.account && !store.name) {
         results.failed++
-        results.errors.push(`Row ${rowNum}: Store name is required`)
+        results.errors.push(`Row ${rowNum}: Account name is required`)
         continue
       }
       
-      // Clean and validate data
-      const name = String(store.name).trim()
-      const description = store.description ? String(store.description).trim() : null
+      // Clean and validate data - handle both "Account" and "name" fields
+      const name = String(store.Account || store.account || store.name || '').trim()
+      const description = store.Notes || store.notes || store.description || store.Description
+      const finalDescription = description ? String(description).trim() : null
       
       // Check for duplicate store names
       const existingStore = await env.DB.prepare('SELECT id FROM stores WHERE name = ?').bind(name).first()
@@ -225,23 +226,46 @@ app.post('/api/stores/bulk-import', async (c) => {
       const result = await env.DB.prepare(`
         INSERT INTO stores (name, description) 
         VALUES (?, ?)
-      `).bind(name, description).run()
+      `).bind(name, finalDescription).run()
       
       const storeId = result.meta.last_row_id as number
       results.created_ids.push(storeId)
       
       // Add custom sections if provided (auto-detect from headers)
-      const standardFields = ['name', 'description', 'logo', 'logo_url']
+      const standardFields = ['name', 'description', 'logo', 'logo_url', 'account', 'notes']
       const customSections = []
       
       for (const [key, value] of Object.entries(store)) {
-        const lowerKey = key.toLowerCase().trim()
-        if (!standardFields.includes(lowerKey) && value && String(value).trim()) {
-          customSections.push({
-            name: key.charAt(0).toUpperCase() + key.slice(1), // Capitalize first letter
-            value: String(value).trim()
-          })
+        const lowerKey = key.toLowerCase().trim().replace(/\s+/g, '_')
+        const originalKey = key.trim()
+        
+        // Skip standard fields that are handled directly
+        if (standardFields.includes(lowerKey) || !value || !String(value).trim()) {
+          continue
         }
+        
+        // Clean up field name for display
+        let sectionName = originalKey
+        if (sectionName.toLowerCase() === 'phone number') {
+          sectionName = 'Phone'
+        } else if (sectionName.toLowerCase() === 'store address') {
+          sectionName = 'Address'
+        } else if (sectionName.toLowerCase() === 'email address') {
+          sectionName = 'Email'
+        } else if (sectionName.toLowerCase() === 'facebook link') {
+          sectionName = 'Facebook'
+        } else if (sectionName.includes('Store Hours')) {
+          sectionName = sectionName.replace('Store Hours', 'Hours')
+        } else if (sectionName.includes('Net Sales')) {
+          sectionName = sectionName
+        } else if (sectionName === '23 + \'24') {
+          sectionName = 'Sales 2023+2024'
+        }
+        
+        customSections.push({
+          name: sectionName,
+          value: String(value).trim()
+        })
       }
       
       // Insert custom sections
@@ -464,15 +488,15 @@ app.get('/api/excel-template/staff', (c) => {
 
 // Download Excel template for stores
 app.get('/api/excel-template/stores', (c) => {
-  const template = `Name,Description,Address,Phone,Email,Website,Owner,Manager,Established,Specializes In,Hours,Social Media
-"Diamond Dreams","Luxury diamond jewelry and custom engagement rings","123 Main St, Beverly Hills, CA 90210","(310) 555-0123","info@diamonddreams.com","www.diamonddreams.com","Robert Smith","Sarah Johnson",2015,"Custom Engagement Rings, Luxury Diamonds","Mon-Sat 10AM-7PM","@DiamondDreamsLA"
-"Golden Touch Jewelry","Family-owned jewelry store specializing in gold and silver pieces","456 Oak Avenue, Los Angeles, CA 90028","(323) 555-0456","contact@goldentouch.com","www.goldentouch.com","Maria Gonzalez","David Williams",2008,"Gold Jewelry, Silver Collections, Repairs","Tue-Sun 9AM-6PM","@GoldenTouchJewelry"
-"Precious Gems Co.","Fine jewelry with rare gemstones and vintage collections","789 Sunset Blvd, West Hollywood, CA 90069","(424) 555-0789","hello@preciousgems.com","www.preciousgems.com","Jennifer Lee","Michael Chen",2012,"Rare Gemstones, Vintage Jewelry, Appraisals","Mon-Fri 11AM-8PM, Sat 10AM-6PM","@PreciousGemsCo"`
+  const template = `Account,Contact,Phone Number,Store Address,Website,Facebook Link,Email Address,Monday Store Hours,Tuesday Store Hours,Wednesday Store Hours,Thursday Store Hours,Friday Store Hours,Saturday Store Hours,Sunday Store Hours,Notes,Net Sales FY 2025,Net Sales FY 2024,Net Sales FY 2023,23 + '24,Status
+"Diamond Dreams","Sarah Johnson","(310) 555-0123","123 Main St, Beverly Hills, CA 90210","www.diamonddreams.com","facebook.com/diamonddreams","info@diamonddreams.com","10:00 AM - 7:00 PM","10:00 AM - 7:00 PM","10:00 AM - 7:00 PM","10:00 AM - 7:00 PM","10:00 AM - 8:00 PM","9:00 AM - 6:00 PM","12:00 PM - 5:00 PM","Luxury diamond jewelry and custom engagement rings","$485000","$420000","$385000","$805000","Active"
+"Golden Touch Jewelry","David Williams","(323) 555-0456","456 Oak Avenue, Los Angeles, CA 90028","www.goldentouch.com","facebook.com/goldentouch","contact@goldentouch.com","9:00 AM - 6:00 PM","9:00 AM - 6:00 PM","9:00 AM - 6:00 PM","9:00 AM - 6:00 PM","9:00 AM - 7:00 PM","9:00 AM - 6:00 PM","Closed","Family-owned jewelry store specializing in gold and silver pieces","$325000","$298000","$276000","$574000","Active"
+"Precious Gems Co.","Michael Chen","(424) 555-0789","789 Sunset Blvd, West Hollywood, CA 90069","www.preciousgems.com","facebook.com/preciousgems","hello@preciousgems.com","11:00 AM - 8:00 PM","11:00 AM - 8:00 PM","11:00 AM - 8:00 PM","11:00 AM - 8:00 PM","11:00 AM - 8:00 PM","10:00 AM - 6:00 PM","Closed","Fine jewelry with rare gemstones and vintage collections","$295000","$310000","$285000","$595000","Active"`
 
   return new Response(template, {
     headers: {
       'Content-Type': 'text/csv',
-      'Content-Disposition': 'attachment; filename="jewelry-stores-template.csv"'
+      'Content-Disposition': 'attachment; filename="jewelry-account-profiles-template.csv"'
     }
   })
 })

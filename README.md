@@ -29,12 +29,15 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 - **Edit staff information** including profile picture updates
 - **Delete staff members** with confirmation
 
-### 📊 Excel Bulk Import (NEW!)
-- **Import multiple staff profiles** from Excel spreadsheets instantly
-- **Download Excel template** with proper formatting and sample data
+### 📊 Excel Bulk Import (ENHANCED!)
+- **Import multiple jewelry stores** from Excel spreadsheets with automatic custom section creation
+- **Import multiple staff profiles** from Excel spreadsheets instantly  
+- **Copy-paste functionality** - directly paste from Excel, Google Sheets, or any spreadsheet
+- **Download Excel templates** with proper formatting and sample data (separate for stores and staff)
 - **Support for .xlsx, .xls, and .csv** file formats
-- **Smart field mapping** automatically detects common column names
-- **Bulk custom sections import** (certifications, languages, specialties, etc.)
+- **Intelligent field mapping** automatically detects common column names and creates custom sections
+- **Auto-detection of custom fields** - any additional columns become custom sections automatically
+- **Dual import methods** - file upload OR copy-paste from clipboard
 - **Import validation** with detailed error reporting and success summary
 - **Progress tracking** with real-time import status updates
 - **Mobile-optimized workflow** for importing on any device
@@ -61,8 +64,9 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 
 ### 📊 Database Tables (Cloudflare D1)
 1. **stores** - Jewelry store information (id, name, description, logo_url, timestamps)
-2. **staff** - Staff member profiles (id, store_id, name, role, year_started, profile_picture_url, timestamps)
-3. **staff_custom_sections** - Dynamic profile sections (id, staff_id, section_name, section_value, section_order, timestamps)
+2. **store_custom_sections** - Dynamic store information (address, phone, website, hours, specialties, etc.)
+3. **staff** - Staff member profiles (id, store_id, name, role, year_started, profile_picture_url, timestamps)
+4. **staff_custom_sections** - Dynamic profile sections (certifications, languages, awards, experience, etc.)
 
 ### 💾 Storage Services
 - **Cloudflare D1** - SQLite database for relational data with global distribution
@@ -84,8 +88,9 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 
 ### Managing Stores
 - **Add Store**: Click the blue "Add Store" button, fill in details, optionally upload logo
+- **Import Stores**: Click "Import Stores" for bulk upload from Excel or copy-paste
 - **Edit Store**: Click the edit icon (pencil) on any store card
-- **Delete Store**: Click the trash icon (will remove all staff too)
+- **Delete Store**: Click the trash icon (will remove all staff too)  
 - **View Store**: Click anywhere on a store card to open details
 
 ### Managing Staff
@@ -96,11 +101,28 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 5. **Edit or delete** using the profile action buttons
 
 ### Excel Bulk Import Process
-1. **Download template**: Click "Download Excel Template" for the proper format
-2. **Fill in your data**: Name and Role are required, other fields are optional
-3. **Upload file**: Select your .xlsx, .xls, or .csv file
-4. **Review results**: See import summary with success/error counts
-5. **View imported staff**: Automatically refreshes to show new profiles
+
+#### For Jewelry Stores:
+1. **Access import**: Click "Import Stores" on the main page
+2. **Choose method**: File upload or copy-paste from spreadsheet
+3. **Download template**: Get stores template with sample data including custom fields
+4. **Import data**: Upload file or paste directly from Excel/Google Sheets
+5. **Auto-sections**: Any additional columns automatically become custom store sections
+
+#### For Staff Profiles:
+1. **Access import**: Click "Import Excel" from any store view
+2. **Download template**: Get staff template with sample data
+3. **Fill in data**: Name and Role required, all other fields become custom sections
+4. **Import method**: Upload file or paste from clipboard
+5. **Review results**: See detailed import summary with success/error counts
+6. **View imported**: Automatically refreshes to show new profiles
+
+#### Copy-Paste Feature:
+- **Direct paste** from Excel, Google Sheets, Numbers, or any spreadsheet
+- **Automatic detection** of tab-separated or comma-separated values
+- **Headers included** - first row should contain column names
+- **Custom fields auto-created** - any unknown columns become custom sections
+- **Sample data provided** - click "View Sample Data" for examples
 
 ### Custom Sections Examples
 - **Certifications**: "GIA Certified Gemologist"
@@ -128,7 +150,7 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 - **API Endpoints**: ✅ All functional
 - **Image Upload**: ✅ Configured for R2 storage
 - **Mobile Optimization**: ✅ Fully responsive
-- **Latest Feature**: ✨ Excel Bulk Import for Staff Profiles
+- **Latest Feature**: ✨ Comprehensive Excel Import with Copy-Paste Support for Stores & Staff
 - **Last Updated**: 2025-09-14
 
 ## 📋 API Endpoints
@@ -145,9 +167,12 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 - `PUT /api/staff/:id` - Update staff member
 - `DELETE /api/staff/:id` - Delete staff member
 
-### Bulk Import (NEW!)
-- `POST /api/stores/:storeId/staff/bulk-import` - Import multiple staff from Excel data
-- `GET /api/excel-template` - Download Excel/CSV template with sample data
+### Bulk Import (ENHANCED!)
+- `POST /api/stores/bulk-import` - Import multiple stores from Excel data with auto-sections
+- `POST /api/stores/:storeId/staff/bulk-import` - Import multiple staff from Excel data with auto-sections
+- `GET /api/excel-template/stores` - Download stores Excel/CSV template with sample data
+- `GET /api/excel-template/staff` - Download staff Excel/CSV template with sample data
+- `GET /api/excel-template` - Legacy endpoint (redirects to staff template)
 
 ### Custom Sections
 - `POST /api/staff/:staffId/sections` - Add custom section
