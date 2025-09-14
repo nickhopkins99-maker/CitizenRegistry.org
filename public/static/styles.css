@@ -1,0 +1,180 @@
+/* Mobile-Optimized Jewelry Store App Styles */
+
+/* Custom scrollbar for better mobile experience */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+/* Modal optimizations for mobile */
+@media (max-width: 768px) {
+  .modal-content {
+    margin: 1rem;
+    max-height: calc(100vh - 2rem);
+  }
+  
+  /* Better touch targets for mobile */
+  button, .cursor-pointer {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Improved form inputs for mobile */
+  input, textarea, select {
+    font-size: 16px; /* Prevents zoom on iOS */
+    -webkit-appearance: none;
+    border-radius: 8px;
+  }
+  
+  /* Better spacing for mobile cards */
+  .store-card, .staff-card {
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+  }
+}
+
+/* Smooth transitions */
+.transition-all {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Custom button hover states */
+.btn-primary {
+  @apply bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200;
+}
+
+.btn-secondary {
+  @apply bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 px-4 rounded-lg transition-all duration-200;
+}
+
+.btn-success {
+  @apply bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200;
+}
+
+.btn-danger {
+  @apply bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200;
+}
+
+/* Loading animation */
+.loading-spinner {
+  border: 4px solid #f3f4f6;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Image upload preview */
+.image-preview {
+  max-width: 200px;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px dashed #d1d5db;
+  padding: 4px;
+}
+
+/* Touch-friendly tap highlights */
+.tap-highlight {
+  -webkit-tap-highlight-color: rgba(59, 130, 246, 0.3);
+}
+
+/* Improved focus states for accessibility */
+input:focus, textarea:focus, button:focus, select:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Custom gradient backgrounds */
+.gradient-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.gradient-purple {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.gradient-blue {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Profile picture placeholder animations */
+.profile-placeholder {
+  background: linear-gradient(45deg, #f3f4f6, #e5e7eb);
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-placeholder::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Better mobile typography */
+@media (max-width: 640px) {
+  h1 { font-size: 1.875rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+  
+  .text-responsive {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+}
+
+/* Notification animations */
+.notification-enter {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.notification-show {
+  transform: translateX(0);
+  opacity: 1;
+  transition: all 0.3s ease-out;
+}
+
+.notification-exit {
+  transform: translateX(100%);
+  opacity: 0;
+  transition: all 0.3s ease-in;
+}
