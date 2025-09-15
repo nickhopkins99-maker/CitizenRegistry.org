@@ -12,6 +12,7 @@ A clean, functional web application for managing jewelry store accounts, staff p
 - **🔐 Authentication**: Secure login system
 - **📸 Photo Upload**: Upload images for stores and staff (JPG, PNG, GIF, WebP, BMP, SVG)
 - **🏪 Store Management**: Create, edit, and manage jewelry store profiles
+- **📊 Bulk Import**: Import multiple stores from CSV/Excel files or copy-paste data
 - **👥 Staff Profiles**: Add and manage staff members with photos
 - **📅 Visit Calendar**: Track customer visits and appointments
 - **🗺️ Map Integration**: View store locations on map
@@ -20,10 +21,11 @@ A clean, functional web application for managing jewelry store accounts, staff p
 
 ### 🎯 Core Functionality
 1. **Store Profiles**: Name, description, contact info, custom fields
-2. **Staff Management**: Employee profiles with roles and photos
-3. **Visit Tracking**: Calendar system for customer interactions
-4. **Photo Storage**: Database-backed image storage system
-5. **Search & Filter**: Find stores and staff quickly
+2. **Bulk Import**: Import multiple accounts from CSV/Excel with template
+3. **Staff Management**: Employee profiles with roles and photos
+4. **Visit Tracking**: Calendar system for customer interactions
+5. **Photo Storage**: Database-backed image storage system
+6. **Search & Filter**: Find stores and staff quickly
 
 ## 🔧 Tech Stack
 
@@ -107,6 +109,8 @@ npm run deploy:prod
 - `POST /api/login` - Authentication
 - `GET /api/stores` - List all stores
 - `POST /api/stores` - Create new store
+- `POST /api/stores/bulk-import` - Import multiple stores from CSV data
+- `GET /api/excel-template/stores` - Download CSV template for bulk import
 - `PUT /api/stores/:id` - Update store
 - `POST /api/upload` - Upload images
 - `GET /api/images/:id` - Serve images
@@ -156,13 +160,14 @@ npm run deploy:prod
 - **File size limit**: 10MB per image
 - **Local development**: Requires D1 database setup
 
-## 📝 Recent Changes (Latest Cleanup)
-- ✅ Removed confusing backend development features
-- ✅ Fixed photo upload system with proper database storage
-- ✅ Cleaned up UI by removing "Site Data" and "Bulk Import" buttons
-- ✅ Fixed store update API to handle partial updates
-- ✅ Improved error handling and validation
-- ✅ All core features tested and working
+## 📝 Recent Changes
+- ✅ **Bulk Import Restored**: Added back professional bulk import functionality for accounts
+- ✅ **CSV Template**: Download sample template with realistic jewelry store data
+- ✅ **Multiple Import Methods**: File upload OR copy/paste from Excel/Google Sheets
+- ✅ **Error Handling**: Detailed validation and error reporting for imports
+- ✅ **Fixed Photo Upload**: Database storage system working perfectly
+- ✅ **Clean UI**: Professional interface without confusing developer buttons
+- ✅ **All Features Working**: Photo upload, bulk import, store management all tested
 
 ## 🤝 Contributing
 This is a focused business application. For feature requests or bug reports, please open an issue.
