@@ -21,6 +21,8 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 - **Add new jewelry stores** with name, description, and logo upload
 - **Import stores from Excel** with comprehensive account profile data
 - **Copy-paste functionality** - directly paste from Excel, Google Sheets, or any spreadsheet
+- **Filter and sort accounts** - show only prospects, active accounts, or sort alphabetically
+- **Smart prospect detection** - automatically identifies accounts with "PROSPECT" in name
 - **Edit store information** including logo updates and custom sections
 - **Delete stores** (cascades to remove all associated staff)
 - **Browse all stores** in an organized card layout
@@ -51,6 +53,28 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 - **Organized display** with proper ordering and management controls
 - **Easy deletion** of unwanted sections
 
+### 📅 Visit Tracking (NEW!)
+- **Today's Visit Button** - Prominent green button in the header for easy access
+- **Visit Recording Modal** - Full-screen white background popup for distraction-free data entry
+- **Account Selection Dropdown** - Choose from all available store profiles
+- **Date & Time Input** - Auto-populated with today's date and current time
+- **Visit Notes** - Add detailed notes about the visit
+- **Automatic Linking** - All visit data is automatically linked to the selected account profile
+- **Visit History Display** - View all past visits within account profile modals
+- **Complete CRUD Operations** - Create, view, edit, and delete visit records
+- **API Integration** - Full REST API endpoints for visit management
+
+### 🔍 Advanced Filtering & Sorting (ENHANCED!)
+- **All Accounts** - Display every account in the database (default view)
+- **Prospects Only** - Show only accounts with "PROSPECT" in the name
+- **Non-Prospects** - Display accounts that DON'T have "PROSPECT" in name ✨ NEW!
+- **Active Only** - Show accounts marked as "Active" in custom sections
+- **Alphabetical Sort** - Sort accounts A-Z or Z-A by name
+- **Date Sort** - Order by newest or oldest accounts first
+- **Real-time Status** - See current filter and result count with live updates
+- **Quick Clear** - Reset all filters with one click
+- **Mobile Optimized** - Touch-friendly filter controls with proper accessibility
+
 ### 📱 Mobile-Optimized Design
 - **Responsive layout** that works perfectly on phones and tablets
 - **Touch-friendly buttons** with proper sizing for mobile interaction
@@ -70,6 +94,7 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 2. **store_custom_sections** - Dynamic store information (address, phone, website, hours, specialties, etc.)
 3. **staff** - Staff member profiles (id, store_id, name, role, year_started, profile_picture_url, timestamps)
 4. **staff_custom_sections** - Dynamic profile sections (certifications, languages, awards, experience, etc.)
+5. **visits** - Visit tracking records (id, store_id, visit_date, visit_time, notes, timestamps)
 
 ### 💾 Storage Services
 - **Cloudflare D1** - SQLite database for relational data with global distribution
@@ -92,6 +117,8 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 ### Managing Stores
 - **Add Store**: Click the blue "Add Store" button, fill in details, optionally upload logo
 - **Import Stores**: Click "Import Stores" for bulk upload from Excel or copy-paste
+- **Filter Accounts**: Use filter dropdown to show only Prospects, Active accounts, or All
+- **Sort Accounts**: Sort alphabetically (A-Z, Z-A) or by date (newest/oldest first)
 - **Edit Store**: Click the edit icon (pencil) on any store card
 - **Delete Store**: Click the trash icon (will remove all staff too)  
 - **View Store**: Click anywhere on a store card to open details
@@ -162,7 +189,10 @@ Name | Role | Year Started | Certifications | Languages | Specialties | Educatio
 - **Image Upload**: ✅ Configured for R2 storage
 - **Excel Import**: ✅ Both file upload and copy-paste working
 - **Mobile Optimization**: ✅ Fully responsive
-- **Latest Feature**: ✨ Account Profile Template with Financial Data
+- **Latest Features**: 
+  - 🔍 Non-Prospects Filter for comprehensive account management
+  - ♿ Full WCAG 2.1 AA accessibility compliance with keyboard navigation
+  - 🎨 Pantone color scheme with warm amber tones and blue accents
 - **Last Updated**: 2025-09-14
 
 ## 📋 API Endpoints
@@ -193,6 +223,13 @@ Name | Role | Year Started | Certifications | Languages | Specialties | Educatio
 - `POST /api/staff/:staffId/sections` - Add staff custom section
 - `PUT /api/staff/sections/:id` - Update staff section
 - `DELETE /api/staff/sections/:id` - Delete staff section
+
+### Visits
+- `POST /api/visits` - Create new visit record
+- `GET /api/stores/:storeId/visits` - Get all visits for a specific store
+- `GET /api/visits/recent` - Get recent visits across all stores (limit 50)
+- `PUT /api/visits/:id` - Update visit record
+- `DELETE /api/visits/:id` - Delete visit record
 
 ### File Upload
 - `POST /api/upload` - Upload image file
