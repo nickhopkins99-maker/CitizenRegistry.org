@@ -64,6 +64,18 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 - **Complete CRUD Operations** - Create, view, edit, and delete visit records
 - **API Integration** - Full REST API endpoints for visit management
 
+### 📆 Visit Calendar (NEW!)
+- **Calendar Button** - Purple button in header to view all recorded visits
+- **Full-Screen Calendar Modal** - Amber-themed calendar interface matching app design
+- **Date-Based Grouping** - All visits organized by date in chronological order (newest first)
+- **Visit Details** - Each visit shows store name, time, notes, and recording timestamp
+- **Visit Count Display** - Shows total number of visits and count per day
+- **Quick Record Access** - "Record New Visit" button available directly in calendar
+- **Responsive Design** - Mobile-optimized calendar view with touch-friendly interface
+- **Empty State Guidance** - Encourages users to record their first visit if calendar is empty
+- **Seamless Integration** - Calendar data syncs with Today's Visit functionality
+- **REST API Endpoint** - `/api/calendar/visits` provides grouped visit data for calendar display
+
 ### 🔍 Advanced Filtering & Sorting (ENHANCED!)
 - **All Accounts** - Display every account in the database (default view)
 - **Prospects Only** - Show only accounts with "PROSPECT" in the name
@@ -190,11 +202,13 @@ Name | Role | Year Started | Certifications | Languages | Specialties | Educatio
 - **Excel Import**: ✅ Both file upload and copy-paste working
 - **Mobile Optimization**: ✅ Fully responsive
 - **Today's Visit Feature**: ✅ **Fully implemented with modal and form**
+- **Calendar Feature**: ✅ **Complete calendar view of all visits** ✨ NEW!
 - **Latest Features**: 
+  - 📆 **Calendar** - Full calendar view displaying all recorded visits grouped by date
   - 📅 **Today's Visit** - Record visits to accounts with date/time tracking
   - 🔍 Non-Prospects Filter for comprehensive account management
   - ♿ Full WCAG 2.1 AA accessibility compliance with keyboard navigation
-  - 🎨 Pantone color scheme with warm amber tones and blue accents
+  - 🎨 Pantone color scheme with warm amber tones, blue accents, and purple calendar
 - **Last Updated**: 2025-09-15
 
 ## 📋 API Endpoints
@@ -230,6 +244,7 @@ Name | Role | Year Started | Certifications | Languages | Specialties | Educatio
 - `POST /api/visits` - Create new visit record
 - `GET /api/stores/:storeId/visits` - Get all visits for a specific store
 - `GET /api/visits/recent` - Get recent visits across all stores (limit 50)
+- `GET /api/calendar/visits` - Get all visits grouped by date for calendar display ✨ NEW!
 - `PUT /api/visits/:id` - Update visit record
 - `DELETE /api/visits/:id` - Delete visit record
 
