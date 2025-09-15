@@ -81,17 +81,13 @@ class JewelryStoreApp {
       this.closeModal('mapModal')
     })
 
-    // Click outside modal to close
+    // Click outside modal to close (Apple-style)
     document.getElementById('storeModal').addEventListener('click', (e) => {
       if (e.target.id === 'storeModal') this.closeModal('storeModal')
     })
 
     document.getElementById('staffModal').addEventListener('click', (e) => {
       if (e.target.id === 'staffModal') this.closeModal('staffModal')
-    })
-
-    document.getElementById('siteDataModal').addEventListener('click', (e) => {
-      if (e.target.id === 'siteDataModal') this.closeModal('siteDataModal')
     })
 
     document.getElementById('visitModal').addEventListener('click', (e) => {
@@ -113,6 +109,16 @@ class JewelryStoreApp {
     
     document.getElementById('generalModal').addEventListener('click', (e) => {
       if (e.target.id === 'generalModal') this.closeModal('generalModal')
+    })
+    
+    // ESC key to close modals
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const visibleModal = document.querySelector('.apple-modal.show')
+        if (visibleModal) {
+          this.closeModal(visibleModal.id)
+        }
+      }
     })
   }
 
@@ -176,7 +182,7 @@ class JewelryStoreApp {
 
   renderCustomSections(store) {
     if (!store.custom_sections || !Array.isArray(store.custom_sections)) {
-      return '<div class="col-span-full text-amber-600 text-center py-4">No additional details available</div>'
+      return '<div class="apple-text-center apple-p-4" style="color: var(--apple-gray-500)">No additional details available</div>'
     }
     
     // Filter out hours and address sections (they're displayed separately)
@@ -187,13 +193,15 @@ class JewelryStoreApp {
     })
     
     if (filteredSections.length === 0) {
-      return '<div class="col-span-full text-amber-600 text-center py-4">No additional details available</div>'
+      return '<div class="apple-text-center apple-p-4" style="color: var(--apple-gray-500)">No additional details available</div>'
     }
     
     return filteredSections.map(section => `
-      <div class="p-3 border border-amber-200 bg-amber-50 rounded-lg">
-        <h4 class="font-semibold text-amber-900 text-sm mb-1">${section.section_name}</h4>
-        <p class="text-amber-800 text-sm">${section.section_value || 'Not specified'}</p>
+      <div class="apple-card apple-mb-3">
+        <div class="apple-card-content">
+          <h4 class="text-headline apple-mb-2">${section.section_name}</h4>
+          <p class="text-body" style="color: var(--apple-gray-600)">${section.section_value || 'Not specified'}</p>
+        </div>
       </div>
     `).join('')
   }
@@ -203,12 +211,14 @@ class JewelryStoreApp {
     const filteredAndSortedStores = this.getFilteredAndSortedStores()
     
     const storesList = document.getElementById('storesList')
+    storesList.className = 'apple-flex apple-flex-col apple-gap-4'
     
     if (this.stores.length === 0) {
       storesList.innerHTML = `
-        <div class="text-center text-amber-600 py-8">
-          <i class="fas fa-store text-4xl mb-4" aria-hidden="true"></i>
-          <p>No jewelry stores added yet. Click "Add Store" to get started!</p>
+        <div class="apple-text-center apple-p-8" style="color: var(--apple-gray-500)">
+          <i class="fas fa-store" style="font-size: 48px; color: var(--apple-gray-300); margin-bottom: 16px" aria-hidden="true"></i>
+          <h3 class="text-title-3 apple-mb-2">No Stores Yet</h3>
+          <p class="text-body">Click "Add Store" to get started with your jewelry business!</p>
         </div>
       `
       return
@@ -216,13 +226,14 @@ class JewelryStoreApp {
 
     if (filteredAndSortedStores.length === 0) {
       storesList.innerHTML = `
-        <div class="text-center text-amber-600 py-8">
-          <i class="fas fa-filter text-4xl mb-4" aria-hidden="true"></i>
-          <p>No accounts match your current filters.</p>
-          <button onclick="app.clearFilters()" class="mt-2 text-blue-600 hover:text-blue-800 focus:ring-4 focus:ring-blue-300 focus:outline-none underline px-2 py-1 rounded"
+        <div class="apple-text-center apple-p-8" style="color: var(--apple-gray-500)">
+          <i class="fas fa-filter" style="font-size: 48px; color: var(--apple-gray-300); margin-bottom: 16px" aria-hidden="true"></i>
+          <h3 class="text-title-3 apple-mb-2">No Results</h3>
+          <p class="text-body apple-mb-4">No accounts match your current filters.</p>
+          <button onclick="app.clearFilters()" class="apple-button"
                   aria-label="Clear all filters to show all accounts"
                   tabindex="0">
-            Clear filters to see all accounts
+            Clear Filters
           </button>
         </div>
       `
@@ -230,38 +241,46 @@ class JewelryStoreApp {
     }
 
     storesList.innerHTML = filteredAndSortedStores.map(store => `
-      <div class="border border-amber-200 bg-amber-25 rounded-lg p-4 hover:shadow-md hover:bg-amber-50 focus-within:ring-4 focus-within:ring-blue-300 transition duration-200 cursor-pointer" 
+      <div class="apple-card cursor-pointer" 
            onclick="app.openStore(${store.id})"
            role="button"
            tabindex="0"
            aria-label="Open details for ${store.name}"
            onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); app.openStore(${store.id}); }">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-3">
-            ${store.logo_url ? 
-              `<img src="${store.logo_url}" alt="Logo for ${store.name}" class="w-12 h-12 rounded-full object-cover">` : 
-              `<div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center" aria-label="Default store icon">
-                <i class="fas fa-gem text-blue-600" aria-hidden="true"></i>
-               </div>`
-            }
-            <div>
-              <h3 class="font-semibold text-amber-900">${store.name}</h3>
-              <p class="text-sm text-amber-700">${this.getStoreAddress(store) || 'No address available'}</p>
+        <div class="apple-card-content">
+          <div class="apple-flex apple-items-center apple-justify-between">
+            <div class="apple-flex apple-items-center apple-gap-4">
+              ${store.logo_url ? 
+                `<div class="apple-avatar" style="width: 60px; height: 60px">
+                   <img src="${store.logo_url}" alt="Logo for ${store.name}">
+                 </div>` : 
+                `<div class="apple-avatar" style="width: 60px; height: 60px; background: var(--apple-gray-100)" aria-label="Default store icon">
+                  <i class="fas fa-gem" style="color: var(--apple-blue); font-size: 24px" aria-hidden="true"></i>
+                 </div>`
+              }
+              <div>
+                <h3 class="text-headline apple-mb-1">${store.name}</h3>
+                <p class="text-subhead" style="color: var(--apple-gray-600)">${this.getStoreAddress(store) || 'No address available'}</p>
+              </div>
             </div>
-          </div>
-          <div class="flex space-x-2" role="group" aria-label="Store actions for ${store.name}">
-            <button onclick="event.stopPropagation(); app.editStore(${store.id})" 
-                    class="text-blue-600 hover:text-blue-800 focus:ring-4 focus:ring-blue-300 focus:outline-none p-2 rounded"
-                    aria-label="Edit ${store.name}"
-                    tabindex="0">
-              <i class="fas fa-edit" aria-hidden="true"></i>
-            </button>
-            <button onclick="event.stopPropagation(); app.deleteStore(${store.id})" 
-                    class="text-red-600 hover:text-red-800 focus:ring-4 focus:ring-red-300 focus:outline-none p-2 rounded"
-                    aria-label="Delete ${store.name}"
-                    tabindex="0">
-              <i class="fas fa-trash" aria-hidden="true"></i>
-            </button>
+            <div class="apple-flex apple-gap-2" role="group" aria-label="Store actions for ${store.name}">
+              <button onclick="event.stopPropagation(); app.editStore(${store.id})" 
+                      style="color: var(--apple-blue); background: transparent; border: none; padding: 12px; border-radius: 8px; cursor: pointer; transition: background-color 0.2s"
+                      onmouseover="this.style.backgroundColor = 'var(--apple-gray-100)'"
+                      onmouseout="this.style.backgroundColor = 'transparent'"
+                      aria-label="Edit ${store.name}"
+                      tabindex="0">
+                <i class="fas fa-edit" aria-hidden="true"></i>
+              </button>
+              <button onclick="event.stopPropagation(); app.deleteStore(${store.id})" 
+                      style="color: var(--apple-red); background: transparent; border: none; padding: 12px; border-radius: 8px; cursor: pointer; transition: background-color 0.2s"
+                      onmouseover="this.style.backgroundColor = 'var(--apple-gray-100)'"
+                      onmouseout="this.style.backgroundColor = 'transparent'"
+                      aria-label="Delete ${store.name}"
+                      tabindex="0">
+                <i class="fas fa-trash" aria-hidden="true"></i>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1134,11 +1153,26 @@ class JewelryStoreApp {
   }
 
   showModal(modalId) {
-    document.getElementById(modalId).classList.remove('hidden')
+    const modal = document.getElementById(modalId)
+    modal.classList.remove('hidden')
+    // Add Apple-style show animation
+    setTimeout(() => {
+      modal.classList.add('show')
+    }, 10)
     document.body.style.overflow = 'hidden'
   }
 
   closeModal(modalId) {
+    const modal = document.getElementById(modalId)
+    modal.classList.remove('show')
+    // Wait for animation to complete before hiding
+    setTimeout(() => {
+      modal.classList.add('hidden')
+      document.body.style.overflow = 'auto'
+    }, 300)
+  }
+
+  closeModalImmediate(modalId) {
     document.getElementById(modalId).classList.add('hidden')
     document.body.style.overflow = 'auto'
   }

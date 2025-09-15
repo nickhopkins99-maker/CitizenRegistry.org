@@ -1253,56 +1253,59 @@ const requireAuth = async (c, next) => {
   } else {
     return c.html(
       <div>
-        <link href="/static/style.css" rel="stylesheet"/>
-        <div className="min-h-screen bg-amber-50 flex items-center justify-center px-4">
-          <div className="max-w-md w-full">
-            <div className="bg-white rounded-lg shadow-lg p-8 border border-amber-200">
-              <div className="text-center mb-8">
-                <i className="fas fa-gem text-blue-600 text-4xl mb-4"></i>
-                <h1 className="text-2xl font-bold text-amber-900 mb-2">Jewelry Store Profiles</h1>
-                <p className="text-amber-700">Please enter the password to access the system</p>
-              </div>
-              
-              <form id="loginForm" className="space-y-6">
-                <div>
-                  <label for="password" className="block text-sm font-medium text-amber-900 mb-2">
-                    <i className="fas fa-lock mr-2"></i>Password
-                  </label>
-                  <input 
-                    type="password" 
-                    id="password" 
-                    name="password" 
-                    required 
-                    className="w-full px-4 py-3 border border-amber-300 rounded-lg focus:ring-4 focus:ring-blue-300 focus:border-blue-500 focus:outline-none bg-white text-gray-900"
-                    placeholder="Enter password"
-                    autocomplete="current-password"
-                  />
+        <link href={`/static/styles.css`} rel="stylesheet"/>
+        <div className="apple-flex apple-items-center apple-justify-center" style={{minHeight: '100vh', background: 'var(--apple-gray-50)'}}>
+          <div className="apple-w-full" style={{maxWidth: '400px', padding: '0 24px'}}>
+            <div className="apple-card">
+              <div className="apple-card-content">
+                <div className="apple-text-center apple-mb-8">
+                  <i className="fas fa-gem apple-mb-4" style={{color: 'var(--apple-blue)', fontSize: '48px'}}></i>
+                  <h1 className="text-title-1 apple-mb-3">Jewelry Store Profiles</h1>
+                  <p className="text-subhead" style={{color: 'var(--apple-gray-600)'}}>Please enter the password to access the system</p>
                 </div>
                 
-                <button 
-                  type="submit" 
-                  className="w-full bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 focus:outline-none text-white py-3 px-4 rounded-lg transition duration-200 font-medium"
-                >
-                  <i className="fas fa-sign-in-alt mr-2"></i>
-                  Login
-                </button>
-              </form>
-              
-              <div id="loginError" className="mt-4 text-red-600 text-sm text-center hidden"></div>
-              
-              <div className="mt-6 text-center">
-                <p className="text-xs text-gray-500">
-                  <i className="fas fa-shield-alt mr-1"></i>
-                  Secure access to jewelry store management system
-                </p>
+                <form id="loginForm" className="apple-flex apple-flex-col apple-gap-6">
+                  <div>
+                    <label htmlFor="password" className="apple-mb-2">
+                      <i className="fas fa-lock" style={{color: 'var(--apple-gray-600)', marginRight: '8px'}}></i>
+                      Password
+                    </label>
+                    <input 
+                      type="password" 
+                      id="password" 
+                      name="password" 
+                      required 
+                      className="apple-w-full"
+                      placeholder="Enter password"
+                      autoComplete="current-password"
+                    />
+                  </div>
+                  
+                  <button 
+                    type="submit" 
+                    className="apple-button-primary apple-w-full"
+                  >
+                    <i className="fas fa-sign-in-alt" style={{marginRight: '8px'}}></i>
+                    Login
+                  </button>
+                </form>
+                
+                <div id="loginError" className="apple-mt-4 apple-text-center" style={{color: 'var(--apple-red)', display: 'none'}}></div>
+                
+                <div className="apple-mt-6 apple-text-center">
+                  <p className="text-caption-1" style={{color: 'var(--apple-gray-500)'}}>
+                    <i className="fas fa-shield-alt" style={{marginRight: '4px'}}></i>
+                    Secure access to jewelry store management system
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
         
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+        <link href={`https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css`} rel="stylesheet"/>
+        <script src={`https://cdn.tailwindcss.com`}></script>
+        <script src={`https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js`}></script>
         <script dangerouslySetInnerHTML={{
           __html: `
             document.addEventListener('DOMContentLoaded', function() {
@@ -1338,174 +1341,194 @@ const requireAuth = async (c, next) => {
 app.get('/', requireAuth, (c) => {
   return c.render(
     <div>
-      <a href="#main-content" className="skip-link">Skip to main content</a>
-      <div className="min-h-screen bg-amber-50">
-        <div className="container mx-auto px-4 py-6 max-w-4xl">
-          <header className="flex justify-between items-start mb-8">
-            <div className="text-center flex-1">
-              <h1 className="text-3xl font-bold text-amber-900 mb-2">
-                <i className="fas fa-gem text-blue-600 mr-3" aria-label="Jewelry store management system icon"></i>
-                Jewelry Store Profiles
-              </h1>
-              <p className="text-amber-700">Manage your jewelry store accounts and staff profiles</p>
-            </div>
-            <div className="flex-shrink-0 ml-4 flex space-x-3">
-              <button 
-                id="todaysVisitBtn" 
-                className="bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 focus:outline-none text-white px-4 py-2 rounded-lg transition duration-200 flex items-center text-sm shadow-md"
-                aria-label="Record today's visit to an account"
-                tabindex="0"
-              >
-                <i className="fas fa-calendar-plus mr-2" aria-hidden="true"></i>
-                Today's Visit
-              </button>
-              <button 
-                id="calendarBtn" 
-                className="bg-purple-600 hover:bg-purple-700 focus:ring-4 focus:ring-purple-300 focus:outline-none text-white px-4 py-2 rounded-lg transition duration-200 flex items-center text-sm shadow-md"
-                aria-label="View calendar of all visits"
-                tabindex="0"
-              >
-                <i className="fas fa-calendar mr-2" aria-hidden="true"></i>
-                Calendar
-              </button>
-
-              <button 
-                id="mapBtn" 
-                className="bg-orange-600 hover:bg-orange-700 focus:ring-4 focus:ring-orange-300 focus:outline-none text-white px-4 py-2 rounded-lg transition duration-200 flex items-center text-sm shadow-md"
-                aria-label="View map of all account locations"
-                tabindex="0"
-              >
-                <i className="fas fa-map-marker-alt mr-2" aria-hidden="true"></i>
-                Map
-              </button>
-              <button 
-                id="logoutBtn" 
-                className="bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 focus:outline-none text-white px-4 py-2 rounded-lg transition duration-200 flex items-center text-sm shadow-md"
-                aria-label="Logout from the system"
-                tabindex="0"
-              >
-                <i className="fas fa-sign-out-alt mr-2" aria-hidden="true"></i>
-                Logout
-              </button>
-            </div>
-          </header>
+      <a href="#main-content" className="apple-skip-link">Skip to main content</a>
+      
+      {/* Apple-Style Header */}
+      <header className="apple-header">
+        <nav className="apple-nav">
+          <div className="apple-nav-logo">
+            <i className="fas fa-gem" style={{color: 'var(--apple-blue)'}} aria-label="Jewelry store management system icon"></i>
+            Jewelry Store Profiles
+          </div>
+          
+          <div className="apple-nav-links">
+            <a href="#stores" className="apple-nav-link">Stores</a>
+            <a href="#calendar" className="apple-nav-link">Calendar</a>
+            <a href="#map" className="apple-nav-link">Map</a>
+          </div>
+          
+          <div className="apple-nav-actions">
+            <button 
+              id="todaysVisitBtn" 
+              className="apple-button-secondary"
+              aria-label="Record today's visit to an account"
+              tabIndex="0"
+            >
+              <i className="fas fa-calendar-plus" aria-hidden="true"></i>
+              {' '}Today's Visit
+            </button>
+            <button 
+              id="calendarBtn" 
+              className="apple-button"
+              aria-label="View calendar of all visits"
+              tabIndex="0"
+            >
+              Calendar
+            </button>
+            <button 
+              id="mapBtn" 
+              className="apple-button"
+              aria-label="View map of all account locations"
+              tabIndex="0"
+            >
+              Map
+            </button>
+            <button 
+              id="logoutBtn" 
+              className="apple-button"
+              aria-label="Logout from the system"
+              tabIndex="0"
+            >
+              Logout
+            </button>
+          </div>
+        </nav>
+      </header>
+      
+      {/* Main Content */}
+      <div className="apple-container">
+        <section className="apple-section">
+          <div className="apple-text-center apple-mb-8">
+            <h1 className="text-large-title apple-mb-4">
+              Manage Your Jewelry Business
+            </h1>
+            <p className="text-title-3" style={{color: 'var(--apple-gray-600)'}}>
+              Professional store and staff management made simple
+            </p>
+          </div>
 
           {/* Store Management Section */}
-          <main id="main-content" className="bg-amber-25 border border-amber-200 rounded-lg shadow-md p-6 mb-6">
-            <div className="flex flex-col space-y-4 mb-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-amber-900">
-                  <i className="fas fa-store text-blue-600 mr-2" aria-label="Stores section icon"></i>
-                  Jewelry Stores
+          <main id="main-content" className="apple-card apple-mb-8">
+            <div className="apple-card-content">
+              <div className="apple-flex apple-justify-between apple-items-center apple-mb-6">
+                <h2 className="text-title-2">
+                  <i className="fas fa-store" style={{color: 'var(--apple-blue)'}} aria-label="Stores section icon"></i>
+                  {' '}Jewelry Stores
                 </h2>
-                <div className="flex space-x-2" role="group" aria-label="Store management actions">
+                <div className="apple-flex apple-gap-3" role="group" aria-label="Store management actions">
                   <button 
                     id="bulkImportStoresBtn" 
-                    className="bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 focus:outline-none text-white px-3 py-2 rounded-lg transition duration-200 flex items-center text-sm"
+                    className="apple-button-secondary"
                     aria-label="Import multiple stores from Excel or CSV"
-                    tabindex="0"
+                    tabIndex="0"
                   >
-                    <i className="fas fa-file-import mr-2" aria-hidden="true"></i>
-                    Import Stores
+                    <i className="fas fa-file-import" aria-hidden="true"></i>
+                    {' '}Import Stores
                   </button>
                   <button 
                     id="addStoreBtn" 
-                    className="bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 focus:outline-none text-white px-4 py-2 rounded-lg transition duration-200 flex items-center"
+                    className="apple-button-primary"
                     aria-label="Add a new jewelry store"
-                    tabindex="0"
+                    tabIndex="0"
                   >
-                    <i className="fas fa-plus mr-2" aria-hidden="true"></i>
-                    Add Store
+                    <i className="fas fa-plus" aria-hidden="true"></i>
+                    {' '}Add Store
                   </button>
                 </div>
               </div>
               
               {/* Filter and Sort Controls */}
-              <div className="flex flex-wrap items-center gap-4 p-4 bg-amber-100 rounded-lg border border-amber-200" role="region" aria-label="Filter and sort controls">
-                <div className="flex items-center space-x-2">
-                  <i className="fas fa-filter text-amber-700" aria-hidden="true"></i>
-                  <label htmlFor="storeFilter" className="text-sm font-medium text-amber-900">Filter:</label>
-                  <select 
-                    id="storeFilter" 
-                    className="px-3 py-1 border border-amber-300 rounded-md text-sm focus:ring-4 focus:ring-blue-300 focus:border-blue-500 focus:outline-none bg-white text-amber-900"
-                    aria-describedby="filterStatus"
+              <div className="apple-flex apple-flex-col apple-gap-4 apple-p-6 apple-mb-6" 
+                   style={{background: 'var(--apple-gray-50)', borderRadius: '12px'}} 
+                   role="region" aria-label="Filter and sort controls">
+                <div className="apple-flex apple-items-center apple-gap-4">
+                  <div className="apple-flex apple-items-center apple-gap-3">
+                    <i className="fas fa-filter" style={{color: 'var(--apple-gray-600)'}} aria-hidden="true"></i>
+                    <label htmlFor="storeFilter" className="text-body">Filter:</label>
+                    <select 
+                      id="storeFilter" 
+                      aria-describedby="filterStatus"
+                    >
+                      <option value="all">All Accounts</option>
+                      <option value="prospect">Prospects Only</option>
+                      <option value="non-prospect">Non-Prospects</option>
+                      <option value="active">Active Only</option>
+                    </select>
+                  </div>
+                  
+                  <div className="apple-flex apple-items-center apple-gap-3">
+                    <i className="fas fa-sort" style={{color: 'var(--apple-gray-600)'}} aria-hidden="true"></i>
+                    <label htmlFor="storeSort" className="text-body">Sort:</label>
+                    <select 
+                      id="storeSort" 
+                      aria-describedby="filterStatus"
+                    >
+                      <option value="name-asc">Name (A-Z)</option>
+                      <option value="name-desc">Name (Z-A)</option>
+                      <option value="recent">Most Recent</option>
+                      <option value="oldest">Oldest First</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="apple-flex apple-justify-between apple-items-center">
+                  <div id="filterStatus" className="text-subhead" style={{color: 'var(--apple-gray-600)'}} aria-live="polite">
+                    Showing all accounts
+                  </div>
+                  
+                  <button 
+                    id="clearFilters" 
+                    className="apple-button"
+                    style={{display: 'none'}}
+                    aria-label="Clear all applied filters"
+                    tabIndex="0"
                   >
-                    <option value="all">All Accounts</option>
-                    <option value="prospect">Prospects Only</option>
-                    <option value="non-prospect">Non-Prospects</option>
-                    <option value="active">Active Only</option>
-                  </select>
+                    Clear Filters
+                  </button>
                 </div>
-                
-                <div className="flex items-center space-x-2">
-                  <i className="fas fa-sort text-amber-700" aria-hidden="true"></i>
-                  <label htmlFor="storeSort" className="text-sm font-medium text-amber-900">Sort:</label>
-                  <select 
-                    id="storeSort" 
-                    className="px-3 py-1 border border-amber-300 rounded-md text-sm focus:ring-4 focus:ring-blue-300 focus:border-blue-500 focus:outline-none bg-white text-amber-900"
-                    aria-describedby="filterStatus"
-                  >
-                    <option value="name-asc">Name (A-Z)</option>
-                    <option value="name-desc">Name (Z-A)</option>
-                    <option value="recent">Most Recent</option>
-                    <option value="oldest">Oldest First</option>
-                  </select>
-                </div>
-                
-                <div id="filterStatus" className="text-sm text-amber-800 italic" aria-live="polite">
-                  Showing all accounts
-                </div>
-                
-                <button 
-                  id="clearFilters" 
-                  className="ml-auto text-sm text-blue-600 hover:text-blue-800 focus:ring-4 focus:ring-blue-300 focus:outline-none underline px-2 py-1 rounded"
-                  style={{display: 'none'}}
-                  aria-label="Clear all applied filters"
-                  tabindex="0"
-                >
-                  Clear Filters
-                </button>
               </div>
             </div>
 
             {/* Bulk Import Instructions */}
-            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg" role="region" aria-label="Import instructions">
-              <div className="flex items-start space-x-3">
-                <i className="fas fa-lightbulb text-blue-600 mt-1" aria-label="Tip icon"></i>
-                <div className="flex-1">
-                  <h4 className="font-medium text-blue-800 mb-1">Quick Setup: Import Multiple Stores</h4>
-                  <p className="text-sm text-blue-700 mb-2">Save time by importing jewelry stores from Excel or copying data directly from spreadsheets.</p>
-                  <a href="/api/excel-template/stores" target="_blank" 
-                     className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 focus:ring-4 focus:ring-blue-300 focus:outline-none font-medium px-2 py-1 rounded"
-                     aria-label="Download Excel template for importing stores">
-                    <i className="fas fa-download mr-1" aria-hidden="true"></i>Download Template
-                  </a>
+            <div className="apple-card apple-mb-6" role="region" aria-label="Import instructions">
+              <div className="apple-card-content">
+                <div className="apple-flex apple-items-start apple-gap-4">
+                  <i className="fas fa-lightbulb" style={{color: 'var(--apple-blue)', marginTop: '2px'}} aria-label="Tip icon"></i>
+                  <div className="apple-flex-col apple-gap-2">
+                    <h4 className="text-headline">Quick Setup: Import Multiple Stores</h4>
+                    <p className="text-subhead" style={{color: 'var(--apple-gray-600)'}}>
+                      Save time by importing jewelry stores from Excel or copying data directly from spreadsheets.
+                    </p>
+                    <a href="/api/excel-template/stores" target="_blank" 
+                       className="apple-button"
+                       aria-label="Download Excel template for importing stores">
+                      <i className="fas fa-download" aria-hidden="true"></i> Download Template
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div id="storesList" className="space-y-4">
+            <div id="storesList" className="apple-gap-4">
               {/* Stores will be loaded here */}
             </div>
           </main>
+        </section>
+      </div>
 
-          {/* Store Detail Modal - Full Screen */}
-          <div id="storeModal" className="fixed inset-0 bg-amber-25 hidden z-50" role="dialog" aria-modal="true" aria-labelledby="storeModalTitle">
-            <div className="h-full flex flex-col">
-              {/* Header */}
-              <div className="bg-amber-100 border-b border-amber-200 px-6 py-4">
-                <div className="flex justify-between items-center">
-                  <h3 id="storeModalTitle" className="text-2xl font-semibold text-amber-900">Account Profile</h3>
-                  <button id="closeStoreModal" className="text-amber-700 hover:text-amber-900 focus:ring-4 focus:ring-blue-300 focus:outline-none p-2 rounded"
-                          aria-label="Close account profile modal">
-                    <i className="fas fa-times text-xl" aria-hidden="true"></i>
-                  </button>
-                </div>
+          {/* Store Detail Modal - Apple Style */}
+          <div id="storeModal" className="apple-modal hidden" role="dialog" aria-modal="true" aria-labelledby="storeModalTitle">
+            <div className="apple-modal-content" style={{maxWidth: '90vw', width: '1024px'}}>
+              <button id="closeStoreModal" className="apple-modal-close" aria-label="Close account profile modal">
+                <i className="fas fa-times" aria-hidden="true"></i>
+              </button>
+              
+              <div className="apple-modal-header">
+                <h3 id="storeModalTitle" className="text-title-1">Account Profile</h3>
               </div>
               
-              {/* Content */}
-              <div className="flex-1 overflow-y-auto bg-amber-50">
-                <div id="storeModalContent" className="p-6">
+              <div className="apple-modal-body">
+                <div id="storeModalContent">
                   {/* Store content will be loaded here */}
                 </div>
               </div>
@@ -1513,20 +1536,19 @@ app.get('/', requireAuth, (c) => {
           </div>
 
           {/* Staff Detail Modal */}
-          <div id="staffModal" className="fixed inset-0 bg-black bg-opacity-50 hidden z-50" role="dialog" aria-modal="true" aria-labelledby="staffModalTitle">
-            <div className="flex items-center justify-center min-h-screen p-4">
-              <div className="bg-amber-25 border border-amber-200 rounded-lg w-full max-w-2xl max-h-screen overflow-y-auto">
-                <div className="p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 id="staffModalTitle" className="text-xl font-semibold text-amber-900">Staff Profile</h3>
-                    <button id="closeStaffModal" className="text-amber-700 hover:text-amber-900 focus:ring-4 focus:ring-blue-300 focus:outline-none p-2 rounded"
-                            aria-label="Close staff profile modal">
-                      <i className="fas fa-times" aria-hidden="true"></i>
-                    </button>
-                  </div>
-                  <div id="staffModalContent">
-                    {/* Staff content will be loaded here */}
-                  </div>
+          <div id="staffModal" className="apple-modal hidden" role="dialog" aria-modal="true" aria-labelledby="staffModalTitle">
+            <div className="apple-modal-content" style={{maxWidth: '600px'}}>
+              <button id="closeStaffModal" className="apple-modal-close" aria-label="Close staff profile modal">
+                <i className="fas fa-times" aria-hidden="true"></i>
+              </button>
+              
+              <div className="apple-modal-header">
+                <h3 id="staffModalTitle" className="text-title-2">Staff Profile</h3>
+              </div>
+              
+              <div className="apple-modal-body">
+                <div id="staffModalContent">
+                  {/* Staff content will be loaded here */}
                 </div>
               </div>
             </div>
@@ -1535,44 +1557,43 @@ app.get('/', requireAuth, (c) => {
 
 
           {/* Today's Visit Modal */}
-          <div id="visitModal" className="fixed inset-0 bg-black bg-opacity-50 hidden z-50" role="dialog" aria-modal="true" aria-labelledby="visitModalTitle">
-            <div className="flex items-center justify-center min-h-screen p-4">
-              <div className="bg-white rounded-lg w-full max-w-2xl max-h-screen overflow-y-auto shadow-2xl">
-                <div className="p-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 id="visitModalTitle" className="text-2xl font-semibold text-gray-900">
-                      <i className="fas fa-calendar-plus text-green-600 mr-2" aria-hidden="true"></i>
-                      Today's Visit
-                    </h3>
-                    <button id="closeVisitModal" className="text-gray-500 hover:text-gray-700 focus:ring-4 focus:ring-blue-300 focus:outline-none p-2 rounded"
-                            aria-label="Close visit modal">
-                      <i className="fas fa-times text-xl" aria-hidden="true"></i>
-                    </button>
-                  </div>
-                  <div id="visitModalContent">
-                    {/* Visit content will be loaded here */}
-                  </div>
+          <div id="visitModal" className="apple-modal hidden" role="dialog" aria-modal="true" aria-labelledby="visitModalTitle">
+            <div className="apple-modal-content" style={{maxWidth: '600px'}}>
+              <button id="closeVisitModal" className="apple-modal-close" aria-label="Close visit modal">
+                <i className="fas fa-times" aria-hidden="true"></i>
+              </button>
+              
+              <div className="apple-modal-header">
+                <h3 id="visitModalTitle" className="text-title-2">
+                  <i className="fas fa-calendar-plus" style={{color: 'var(--apple-green)'}} aria-hidden="true"></i>
+                  {' '}Today's Visit
+                </h3>
+              </div>
+              
+              <div className="apple-modal-body">
+                <div id="visitModalContent">
+                  {/* Visit content will be loaded here */}
                 </div>
               </div>
             </div>
           </div>
 
           {/* Calendar Modal */}
-          <div id="calendarModal" className="fixed inset-0 bg-amber-25 hidden z-50" role="dialog" aria-modal="true" aria-labelledby="calendarModalTitle">
-            <div className="h-full flex flex-col">
-              <div className="bg-amber-100 border-b border-amber-200 px-6 py-4">
-                <div className="flex justify-between items-center">
-                  <h3 id="calendarModalTitle" className="text-2xl font-semibold text-amber-900">
-                    <i className="fas fa-calendar text-purple-600 mr-2" aria-label="Calendar icon"></i>
-                    Visit Calendar
-                  </h3>
-                  <button id="closeCalendarModal" className="text-amber-700 hover:text-amber-900 focus:ring-4 focus:ring-blue-300 focus:outline-none p-2 rounded" aria-label="Close calendar modal">
-                    <i className="fas fa-times text-xl" aria-hidden="true"></i>
-                  </button>
-                </div>
+          <div id="calendarModal" className="apple-modal hidden" role="dialog" aria-modal="true" aria-labelledby="calendarModalTitle">
+            <div className="apple-modal-content" style={{maxWidth: '90vw', width: '1024px'}}>
+              <button id="closeCalendarModal" className="apple-modal-close" aria-label="Close calendar modal">
+                <i className="fas fa-times" aria-hidden="true"></i>
+              </button>
+              
+              <div className="apple-modal-header">
+                <h3 id="calendarModalTitle" className="text-title-1">
+                  <i className="fas fa-calendar" style={{color: 'var(--apple-blue)'}} aria-label="Calendar icon"></i>
+                  {' '}Visit Calendar
+                </h3>
               </div>
-              <div className="flex-1 overflow-y-auto bg-amber-50">
-                <div id="calendarModalContent" className="p-6">
+              
+              <div className="apple-modal-body">
+                <div id="calendarModalContent">
                   {/* Calendar content will be loaded here */}
                 </div>
               </div>
@@ -1580,21 +1601,21 @@ app.get('/', requireAuth, (c) => {
           </div>
 
           {/* Map Modal */}
-          <div id="mapModal" className="fixed inset-0 bg-amber-25 hidden z-50" role="dialog" aria-modal="true" aria-labelledby="mapModalTitle">
-            <div className="h-full flex flex-col">
-              <div className="bg-amber-100 border-b border-amber-200 px-6 py-4">
-                <div className="flex justify-between items-center">
-                  <h3 id="mapModalTitle" className="text-2xl font-semibold text-amber-900">
-                    <i className="fas fa-map-marker-alt text-orange-600 mr-2" aria-label="Map icon"></i>
-                    Store Locations Map
-                  </h3>
-                  <button id="closeMapModal" className="text-amber-700 hover:text-amber-900 focus:ring-4 focus:ring-blue-300 focus:outline-none p-2 rounded" aria-label="Close map modal">
-                    <i className="fas fa-times text-xl" aria-hidden="true"></i>
-                  </button>
-                </div>
+          <div id="mapModal" className="apple-modal hidden" role="dialog" aria-modal="true" aria-labelledby="mapModalTitle">
+            <div className="apple-modal-content" style={{maxWidth: '90vw', width: '1024px', height: '80vh'}}>
+              <button id="closeMapModal" className="apple-modal-close" aria-label="Close map modal">
+                <i className="fas fa-times" aria-hidden="true"></i>
+              </button>
+              
+              <div className="apple-modal-header">
+                <h3 id="mapModalTitle" className="text-title-1">
+                  <i className="fas fa-map-marker-alt" style={{color: 'var(--apple-orange)'}} aria-label="Map icon"></i>
+                  {' '}Store Locations Map
+                </h3>
               </div>
-              <div className="flex-1 overflow-hidden bg-amber-50">
-                <div id="mapModalContent" className="h-full">
+              
+              <div className="apple-modal-body apple-h-full">
+                <div id="mapModalContent" className="apple-h-full">
                   {/* Map content will be loaded here */}
                 </div>
               </div>
@@ -1602,15 +1623,17 @@ app.get('/', requireAuth, (c) => {
           </div>
 
           {/* General Modal */}
-          <div id="generalModal" className="fixed inset-0 bg-black bg-opacity-50 hidden z-50" role="dialog" aria-modal="true" aria-labelledby="generalModalTitle">
-            <div className="flex items-center justify-center min-h-screen p-4">
-              <div className="bg-white rounded-lg w-full max-w-2xl max-h-screen overflow-y-auto shadow-xl">
-                <div className="flex justify-between items-center p-4 border-b border-gray-200">
-                  <h3 id="generalModalTitle" className="text-xl font-semibold text-gray-900">Modal</h3>
-                  <button id="closeGeneralModal" className="text-gray-400 hover:text-gray-600 focus:ring-4 focus:ring-blue-300 focus:outline-none p-2 rounded" aria-label="Close modal">
-                    <i className="fas fa-times" aria-hidden="true"></i>
-                  </button>
-                </div>
+          <div id="generalModal" className="apple-modal hidden" role="dialog" aria-modal="true" aria-labelledby="generalModalTitle">
+            <div className="apple-modal-content" style={{maxWidth: '600px'}}>
+              <button id="closeGeneralModal" className="apple-modal-close" aria-label="Close modal">
+                <i className="fas fa-times" aria-hidden="true"></i>
+              </button>
+              
+              <div className="apple-modal-header">
+                <h3 id="generalModalTitle" className="text-title-2">Modal</h3>
+              </div>
+              
+              <div className="apple-modal-body">
                 <div id="generalModalContent">
                   {/* Content will be loaded here */}
                 </div>
@@ -1620,11 +1643,12 @@ app.get('/', requireAuth, (c) => {
         </div>
       </div>
       
-      <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
-      <script src="https://cdn.tailwindcss.com"></script>
-      <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-      <script src="/static/app.js"></script>
+      {/* External resources for Apple-style app */}
+      <link href={`https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css`} rel="stylesheet" />
+      <script src={`https://cdn.tailwindcss.com`}></script>
+      <script src={`https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js`}></script>
+      <script src={`https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js`}></script>
+      <script src={`/static/app.js`}></script>
     </div>
   )
 })
