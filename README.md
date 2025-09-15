@@ -11,9 +11,11 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 
 ## 🌐 URLs
 
-- **Development**: https://3000-i9tr7bwgymrnqynzw6wlq-6532622b.e2b.dev
-- **API Health**: https://3000-i9tr7bwgymrnqynzw6wlq-6532622b.e2b.dev/api/stores
-- **GitHub**: [To be configured when deploying to production]
+- **🚀 Production (LIVE)**: https://jewelry-stores-app.pages.dev
+- **📋 API Health**: https://jewelry-stores-app.pages.dev/api/stores  
+- **🔗 Branch Preview**: https://909b8e4a.jewelry-stores-app.pages.dev
+- **⚙️ Development**: https://3000-i9tr7bwgymrnqynzw6wlq-6532622b.e2b.dev
+- **📚 GitHub**: [To be configured when needed]
 
 ## ✨ Current Features
 
@@ -253,16 +255,18 @@ Name | Role | Year Started | Certifications | Languages | Specialties | Educatio
 
 ## 🚀 Deployment Status
 
-- **Platform**: Cloudflare Pages (ready to deploy)
-- **Status**: ✅ Development Active
-- **Local Database**: ✅ Initialized with sample data
-- **API Endpoints**: ✅ All functional
-- **Image Upload**: ✅ Configured for R2 storage
+- **Platform**: ✅ **LIVE ON CLOUDFLARE PAGES** 🎉
+- **Production URL**: ✅ **https://jewelry-stores-app.pages.dev**
+- **Status**: ✅ **Production Active & Running**
+- **Local Database**: ✅ Initialized with sample data  
+- **API Endpoints**: ✅ All functional in production
+- **Image Upload**: ⚠️ Needs R2 storage configuration for production
 - **Excel Import**: ✅ Both file upload and copy-paste working
 - **Mobile Optimization**: ✅ Fully responsive
 - **Today's Visit Feature**: ✅ **Fully implemented with modal and form**
 - **Calendar Feature**: ✅ **Complete calendar view of all visits** ✨ NEW!
 - **Authentication System**: ✅ **Password protection with 'Family' password** ✨ NEW!
+- **Interactive Map**: ✅ **Real geocoding with full zoom/pan controls** ✨ NEW!
 - **Latest Features**: 
   - 🗺️ **Interactive Map** - Real address geocoding with Leaflet.js for precise store locations ✨ NEW!
   - 🔐 **Authentication** - Secure login system protecting entire application (Password: 'Family')
