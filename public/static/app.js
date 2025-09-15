@@ -1370,70 +1370,67 @@ class JewelryStoreApp {
               </button>
             </div>
           ` : `
-            <!-- Visits by date -->
-            <div class="space-y-4 max-h-96 overflow-y-auto">
-              ${Object.keys(visitsByDate)
-                .sort((a, b) => new Date(b) - new Date(a)) // Sort dates in descending order
-                .map(date => {
-                  const visits = visitsByDate[date]
-                  const visitDate = new Date(date)
-                  const formattedDate = visitDate.toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })
-                  
-                  return `
-                    <div class="bg-amber-25 border border-amber-200 rounded-lg">
-                      <div class="bg-amber-100 px-4 py-3 border-b border-amber-200 rounded-t-lg">
-                        <h5 class="font-medium text-amber-900">
-                          <i class="fas fa-calendar-day text-amber-700 mr-2"></i>
-                          ${formattedDate}
-                          <span class="text-sm font-normal text-amber-700 ml-2">(${visits.length} visit${visits.length !== 1 ? 's' : ''})</span>
-                        </h5>
-                      </div>
-                      <div class="p-4 space-y-3">
-                        ${visits.map(visit => {
-                          const timeDisplay = visit.visit_time ? 
-                            new Date(`2000-01-01T${visit.visit_time}`).toLocaleTimeString('en-US', {
-                              hour: 'numeric',
-                              minute: '2-digit',
-                              hour12: true
-                            }) : 'No time specified'
-                          
-                          return `
-                            <div class="bg-white rounded-lg p-4 border border-amber-200 hover:shadow-md transition duration-200">
-                              <div class="flex items-start justify-between">
-                                <div class="flex-1">
-                                  <div class="flex items-center mb-2">
-                                    <i class="fas fa-store text-blue-600 mr-2"></i>
-                                    <span class="font-medium text-gray-800">${visit.store_name}</span>
-                                    <span class="text-sm text-gray-500 ml-2">at ${timeDisplay}</span>
-                                  </div>
-                                  ${visit.notes ? `
-                                    <div class="mb-2">
-                                      <i class="fas fa-sticky-note text-purple-500 mr-2"></i>
-                                      <span class="text-sm text-gray-700">${visit.notes}</span>
+            <!-- Calendar Layout: Activity Log on Left, Visual Calendar on Right -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <!-- Activity Log - Left Side -->
+              <div class="lg:col-span-1">
+                <h4 class="text-lg font-semibold text-amber-900 mb-4">
+                  <i class="fas fa-history text-amber-700 mr-2"></i>
+                  Activity Log
+                </h4>
+                <div class="space-y-3 max-h-96 overflow-y-auto">
+                  ${Object.keys(visitsByDate)
+                    .sort((a, b) => new Date(b) - new Date(a))
+                    .map(date => {
+                      const visits = visitsByDate[date]
+                      const visitDate = new Date(date)
+                      const formattedDate = visitDate.toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })
+                      
+                      return `
+                        <div class="bg-white border border-amber-200 rounded-lg p-3">
+                          <div class="font-medium text-amber-900 mb-2">
+                            <i class="fas fa-calendar-day text-amber-700 mr-1 text-sm"></i>
+                            ${formattedDate} (${visits.length})
+                          </div>
+                          <div class="space-y-2">
+                            ${visits.map(visit => {
+                              const timeDisplay = visit.visit_time ? 
+                                new Date(`2000-01-01T${visit.visit_time}`).toLocaleTimeString('en-US', {
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                  hour12: true
+                                }) : 'No time'
+                              
+                              return `
+                                <div class="text-sm">
+                                  <div class="flex items-start">
+                                    <i class="fas fa-store text-blue-600 mr-2 mt-0.5 text-xs"></i>
+                                    <div class="flex-1">
+                                      <div class="font-medium text-gray-800">${visit.store_name}</div>
+                                      <div class="text-xs text-gray-500">${timeDisplay}</div>
+                                      ${visit.notes ? `<div class="text-xs text-gray-600 mt-1">${visit.notes.substring(0, 50)}${visit.notes.length > 50 ? '...' : ''}</div>` : ''}
                                     </div>
-                                  ` : ''}
-                                  <div class="text-xs text-gray-500">
-                                    <i class="fas fa-clock mr-1"></i>
-                                    Recorded: ${new Date(visit.created_at).toLocaleTimeString('en-US', {
-                                      hour: 'numeric', 
-                                      minute: '2-digit',
-                                      hour12: true
-                                    })}
                                   </div>
                                 </div>
-                              </div>
-                            </div>
-                          `
-                        }).join('')}
-                      </div>
-                    </div>
-                  `
-                }).join('')}
+                              `
+                            }).join('')}
+                          </div>
+                        </div>
+                      `
+                    }).join('')}
+                </div>
+              </div>
+              
+              <!-- Visual Calendar - Right Side -->
+              <div class="lg:col-span-2">
+                <div class="bg-white border border-amber-200 rounded-lg p-4">
+                  ${this.generateCalendarView(visitsByDate)}
+                </div>
+              </div>
             </div>
           `}
         </div>
@@ -1458,6 +1455,117 @@ class JewelryStoreApp {
       `
       this.showModal('calendarModal')
     }
+  }
+
+  generateCalendarView(visitsByDate) {
+    const currentDate = new Date()
+    const currentMonth = currentDate.getMonth()
+    const currentYear = currentDate.getFullYear()
+    
+    // Get first day of month and number of days in month
+    const firstDayOfMonth = new Date(currentYear, currentMonth, 1)
+    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0)
+    const daysInMonth = lastDayOfMonth.getDate()
+    const startDay = firstDayOfMonth.getDay() // 0 = Sunday, 1 = Monday, etc.
+    
+    // Month names
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ]
+    
+    // Day names
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    
+    let calendarHTML = `
+      <div class="mb-4">
+        <div class="flex items-center justify-between mb-4">
+          <h4 class="text-xl font-bold text-amber-900">
+            ${monthNames[currentMonth]} ${currentYear}
+          </h4>
+          <div class="flex space-x-2">
+            <button onclick="app.changeCalendarMonth(-1)" 
+                    class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded text-sm transition duration-200">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <button onclick="app.changeCalendarMonth(1)" 
+                    class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded text-sm transition duration-200">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Day Headers -->
+        <div class="grid grid-cols-7 gap-1 mb-2">
+          ${dayNames.map(day => `
+            <div class="bg-amber-100 text-amber-900 font-semibold text-center py-2 text-sm rounded">
+              ${day}
+            </div>
+          `).join('')}
+        </div>
+        
+        <!-- Calendar Grid -->
+        <div class="grid grid-cols-7 gap-1">
+          ${this.generateCalendarDays(currentYear, currentMonth, visitsByDate)}
+        </div>
+      </div>
+    `
+    
+    return calendarHTML
+  }
+  
+  generateCalendarDays(year, month, visitsByDate) {
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+    const daysInMonth = lastDay.getDate()
+    const startDay = firstDay.getDay()
+    
+    let daysHTML = ''
+    
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < startDay; i++) {
+      daysHTML += '<div class="h-20 bg-gray-50 rounded border border-gray-200"></div>'
+    }
+    
+    // Add cells for each day of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+      const visits = visitsByDate[dateString] || []
+      const isToday = this.isToday(year, month, day)
+      
+      daysHTML += `
+        <div class="h-20 bg-white border border-amber-200 rounded p-1 relative ${isToday ? 'ring-2 ring-purple-500 bg-purple-50' : ''} hover:bg-amber-50 transition duration-200">
+          <div class="text-sm font-medium text-gray-700 mb-1">${day}</div>
+          ${visits.length > 0 ? `
+            <div class="space-y-1">
+              ${visits.slice(0, 2).map(visit => `
+                <div class="bg-green-500 text-white text-xs px-1 py-0.5 rounded truncate" title="${visit.store_name} - ${visit.visit_time || 'No time'}${visit.notes ? ' - ' + visit.notes : ''}">
+                  <i class="fas fa-circle text-xs mr-1"></i>${visit.store_name.substring(0, 10)}${visit.store_name.length > 10 ? '...' : ''}
+                </div>
+              `).join('')}
+              ${visits.length > 2 ? `
+                <div class="text-xs text-gray-600 font-medium">+${visits.length - 2} more</div>
+              ` : ''}
+            </div>
+          ` : ''}
+        </div>
+      `
+    }
+    
+    return daysHTML
+  }
+  
+  isToday(year, month, day) {
+    const today = new Date()
+    return year === today.getFullYear() && 
+           month === today.getMonth() && 
+           day === today.getDate()
+  }
+  
+  changeCalendarMonth(direction) {
+    // This would be implemented to navigate between months
+    // For now, we'll just reload the current month
+    console.log('Calendar navigation not yet implemented')
   }
 
   showBulkImportForm(storeId) {
