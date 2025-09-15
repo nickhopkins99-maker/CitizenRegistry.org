@@ -1220,6 +1220,15 @@ app.get('/', requireAuth, (c) => {
                 Site Data
               </button>
               <button 
+                id="mapBtn" 
+                className="bg-orange-600 hover:bg-orange-700 focus:ring-4 focus:ring-orange-300 focus:outline-none text-white px-4 py-2 rounded-lg transition duration-200 flex items-center text-sm shadow-md"
+                aria-label="View map of all account locations"
+                tabindex="0"
+              >
+                <i className="fas fa-map-marker-alt mr-2" aria-hidden="true"></i>
+                Map
+              </button>
+              <button 
                 id="logoutBtn" 
                 className="bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 focus:outline-none text-white px-4 py-2 rounded-lg transition duration-200 flex items-center text-sm shadow-md"
                 aria-label="Logout from the system"
@@ -1435,6 +1444,45 @@ app.get('/', requireAuth, (c) => {
               <div className="flex-1 overflow-y-auto bg-amber-50">
                 <div id="calendarModalContent" className="p-6">
                   {/* Calendar content will be loaded here */}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Map Modal */}
+          <div id="mapModal" className="fixed inset-0 bg-amber-25 hidden z-50" role="dialog" aria-modal="true" aria-labelledby="mapModalTitle">
+            <div className="h-full flex flex-col">
+              <div className="bg-amber-100 border-b border-amber-200 px-6 py-4">
+                <div className="flex justify-between items-center">
+                  <h3 id="mapModalTitle" className="text-2xl font-semibold text-amber-900">
+                    <i className="fas fa-map-marker-alt text-orange-600 mr-2" aria-label="Map icon"></i>
+                    Store Locations Map
+                  </h3>
+                  <button id="closeMapModal" className="text-amber-700 hover:text-amber-900 focus:ring-4 focus:ring-blue-300 focus:outline-none p-2 rounded" aria-label="Close map modal">
+                    <i className="fas fa-times text-xl" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-hidden bg-amber-50">
+                <div id="mapModalContent" className="h-full">
+                  {/* Map content will be loaded here */}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* General Modal */}
+          <div id="generalModal" className="fixed inset-0 bg-black bg-opacity-50 hidden z-50" role="dialog" aria-modal="true" aria-labelledby="generalModalTitle">
+            <div className="flex items-center justify-center min-h-screen p-4">
+              <div className="bg-white rounded-lg w-full max-w-2xl max-h-screen overflow-y-auto shadow-xl">
+                <div className="flex justify-between items-center p-4 border-b border-gray-200">
+                  <h3 id="generalModalTitle" className="text-xl font-semibold text-gray-900">Modal</h3>
+                  <button id="closeGeneralModal" className="text-gray-400 hover:text-gray-600 focus:ring-4 focus:ring-blue-300 focus:outline-none p-2 rounded" aria-label="Close modal">
+                    <i className="fas fa-times" aria-hidden="true"></i>
+                  </button>
+                </div>
+                <div id="generalModalContent">
+                  {/* Content will be loaded here */}
                 </div>
               </div>
             </div>

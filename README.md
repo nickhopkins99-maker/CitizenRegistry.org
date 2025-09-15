@@ -107,6 +107,34 @@ A mobile-optimized web application for managing jewelry store accounts and staff
   - `GET /api/visits/:id` - Fetch single visit for editing ✨ NEW!
   - `PUT /api/visits/:id` - Update visit with store change support ✨ NEW!
 
+### 🗺️ Interactive Map (NEW!)
+- **Map Button** - Orange button in header between "Site Data" and "Logout" for easy access
+- **Full-Screen Map Modal** - Professional mapping interface powered by Leaflet.js
+- **Real Address Geocoding** - Uses OpenStreetMap Nominatim service to convert store addresses to exact coordinates
+- **Store Address Detection** - Automatically extracts addresses from store custom sections (Address, Store Address, Location fields)
+- **Interactive Features**:
+  - **Full zoom and pan controls** - Mouse wheel, double-click zoom, keyboard navigation
+  - **Store markers** with popups showing store name, description, address, and action buttons
+  - **Store list sidebar** - Navigate to specific stores with visual status indicators
+  - **Center map control** - Auto-fit all markers or return to optimal view
+- **Smart Geocoding Process**:
+  - **Progress indicator** during address lookup with real-time counter
+  - **Fallback geocoding** - If address fails, tries store name + description
+  - **Error handling** - Stores that can't be located show in red with explanations
+  - **Success indicators** - Successfully mapped stores show in green
+- **Advanced Map Controls**:
+  - **Zoom controls** - Professional +/- buttons for precise navigation
+  - **Keyboard support** - Arrow keys for panning, +/- for zooming
+  - **Touch gestures** - Pinch to zoom, drag to pan on mobile devices
+  - **Box zoom** - Shift+drag to zoom to specific area
+- **Integration Features**:
+  - **View Profile** - Direct link from map markers to store detail modals
+  - **Record Visit** - Start visit recording directly from map with pre-selected store
+  - **Geocoding summary** - Shows success/failure statistics after loading
+  - **Error details modal** - View which stores couldn't be located and why
+- **Mobile Optimization** - Full touch support with responsive sidebar and controls
+- **Performance** - Rate-limited geocoding to prevent API throttling
+
 ### 🔍 Advanced Filtering & Sorting (ENHANCED!)
 - **All Accounts** - Display every account in the database (default view)
 - **Prospects Only** - Show only accounts with "PROSPECT" in the name
@@ -236,6 +264,7 @@ Name | Role | Year Started | Certifications | Languages | Specialties | Educatio
 - **Calendar Feature**: ✅ **Complete calendar view of all visits** ✨ NEW!
 - **Authentication System**: ✅ **Password protection with 'Family' password** ✨ NEW!
 - **Latest Features**: 
+  - 🗺️ **Interactive Map** - Real address geocoding with Leaflet.js for precise store locations ✨ NEW!
   - 🔐 **Authentication** - Secure login system protecting entire application (Password: 'Family')
   - 📆 **Calendar** - Full calendar view displaying all recorded visits grouped by date
   - 📅 **Today's Visit** - Record visits to accounts with date/time tracking

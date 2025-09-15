@@ -77,6 +77,15 @@ class JewelryStoreApp {
       this.logout()
     })
 
+    // Map button
+    document.getElementById('mapBtn').addEventListener('click', () => {
+      this.showMapModal()
+    })
+
+    document.getElementById('closeMapModal').addEventListener('click', () => {
+      this.closeModal('mapModal')
+    })
+
     // Click outside modal to close
     document.getElementById('storeModal').addEventListener('click', (e) => {
       if (e.target.id === 'storeModal') this.closeModal('storeModal')
@@ -96,6 +105,19 @@ class JewelryStoreApp {
 
     document.getElementById('calendarModal').addEventListener('click', (e) => {
       if (e.target.id === 'calendarModal') this.closeModal('calendarModal')
+    })
+
+    document.getElementById('mapModal').addEventListener('click', (e) => {
+      if (e.target.id === 'mapModal') this.closeModal('mapModal')
+    })
+
+    // General modal
+    document.getElementById('closeGeneralModal').addEventListener('click', () => {
+      this.closeModal('generalModal')
+    })
+    
+    document.getElementById('generalModal').addEventListener('click', (e) => {
+      if (e.target.id === 'generalModal') this.closeModal('generalModal')
     })
   }
 
@@ -1780,6 +1802,441 @@ class JewelryStoreApp {
       console.error('Error fetching visit details:', error)
       alert('Error loading visit details')
     }
+  }
+
+  showMapModal() {
+    // Create map content with Leaflet map
+    const content = `
+      <div class="h-full flex flex-col">
+        <!-- Map Controls -->
+        <div class="bg-orange-50 border-b border-orange-200 p-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h4 class="text-lg font-semibold text-orange-900 mb-1">
+                <i class="fas fa-map text-orange-600 mr-2"></i>
+                Account Locations
+              </h4>
+              <p class="text-sm text-orange-700">
+                Total stores: <span class="font-medium">${this.stores.length}</span>
+              </p>
+            </div>
+            <div class="flex space-x-2">
+              <button onclick="app.centerMapOnStores()" 
+                      class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm font-medium">
+                <i class="fas fa-crosshairs mr-2"></i>
+                Center Map
+              </button>
+              <button onclick="app.showStoreList()" 
+                      class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm font-medium">
+                <i class="fas fa-list mr-2"></i>
+                Store List
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Map Container -->
+        <div class="flex-1 relative">
+          <div id="storeMap" class="w-full h-full bg-gray-100 flex items-center justify-center">
+            <div class="text-center">
+              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mb-4"></div>
+              <p class="text-gray-600">Loading map...</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Store List Sidebar (Hidden by default) -->
+        <div id="storeListSidebar" class="absolute top-0 right-0 w-80 h-full bg-white border-l border-amber-200 hidden overflow-y-auto">
+          <div class="p-4">
+            <div class="flex items-center justify-between mb-4">
+              <h5 class="text-lg font-semibold text-amber-900">Store Directory</h5>
+              <button onclick="app.hideStoreList()" 
+                      class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            <div id="mapStoreList" class="space-y-3">
+              ${this.generateMapStoreList()}
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+    
+    document.getElementById('mapModalContent').innerHTML = content
+    this.showModal('mapModal')
+    
+    // Initialize the map after modal is shown
+    setTimeout(() => {
+      this.initializeMap()
+    }, 100)
+  }
+
+  generateMapStoreList() {
+    return this.stores.map(store => {
+      const isOnMap = this.storeMarkers && this.storeMarkers.some(m => m.storeId === store.id)
+      const address = this.getStoreAddress(store)
+      
+      return `
+        <div class="border rounded-lg p-3 transition duration-200 cursor-pointer ${
+          isOnMap 
+            ? 'bg-green-50 border-green-200 hover:bg-green-100' 
+            : 'bg-red-50 border-red-200 hover:bg-red-100'
+        }" ${isOnMap ? `onclick="app.focusStoreOnMap(${store.id})"` : ''}>
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <div class="font-medium ${isOnMap ? 'text-green-900' : 'text-red-900'}">${store.name}</div>
+              ${store.description ? `<div class="text-sm ${isOnMap ? 'text-green-700' : 'text-red-700'} mt-1">${store.description}</div>` : ''}
+              ${address ? `<div class="text-xs text-gray-600 mt-1">${address}</div>` : ''}
+            </div>
+            <div class="ml-2">
+              ${isOnMap 
+                ? '<i class="fas fa-map-marker-alt text-green-600"></i>' 
+                : '<i class="fas fa-exclamation-triangle text-red-600"></i>'
+              }
+            </div>
+          </div>
+          <div class="flex items-center text-xs mt-2 ${isOnMap ? 'text-green-600' : 'text-red-600'}">
+            ${isOnMap 
+              ? '<span><i class="fas fa-check-circle mr-1"></i>Click to locate on map</span>'
+              : '<span><i class="fas fa-times-circle mr-1"></i>Location not found</span>'
+            }
+          </div>
+        </div>
+      `
+    }).join('')
+  }
+
+  initializeMap() {
+    // Check if Leaflet is available
+    if (typeof L === 'undefined') {
+      // Load Leaflet CSS and JS
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+      document.head.appendChild(link)
+      
+      const script = document.createElement('script')
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+      script.onload = () => {
+        this.createMap()
+      }
+      document.head.appendChild(script)
+    } else {
+      this.createMap()
+    }
+  }
+
+  createMap() {
+    // Initialize map centered on US with proper zoom controls
+    this.map = L.map('storeMap', {
+      zoomControl: true,
+      scrollWheelZoom: true,
+      doubleClickZoom: true,
+      boxZoom: true,
+      keyboard: true,
+      dragging: true
+    }).setView([39.8283, -98.5795], 4)
+    
+    // Add OpenStreetMap tiles with better attribution
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 18,
+      minZoom: 2
+    }).addTo(this.map)
+    
+    // Add store markers with geocoding
+    this.addStoreMarkers()
+  }
+
+  async addStoreMarkers() {
+    this.storeMarkers = []
+    this.geocodingErrors = []
+    
+    // Add a loading indicator
+    const loadingDiv = document.createElement('div')
+    loadingDiv.id = 'geocoding-progress'
+    loadingDiv.className = 'absolute top-20 left-4 bg-white p-3 rounded-lg shadow-lg border z-1000'
+    loadingDiv.innerHTML = `
+      <div class="flex items-center text-sm">
+        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600 mr-2"></div>
+        <span>Locating stores on map...</span>
+        <span id="progress-count" class="ml-2 font-medium">0/${this.stores.length}</span>
+      </div>
+    `
+    document.getElementById('storeMap').appendChild(loadingDiv)
+    
+    let processed = 0
+    const validMarkers = []
+    
+    for (const store of this.stores) {
+      try {
+        // Get the actual store address
+        const address = this.getStoreAddress(store)
+        let coordinates = null
+        
+        if (address) {
+          coordinates = await this.geocodeAddress(address)
+        }
+        
+        // If geocoding fails, try with store name + description
+        if (!coordinates) {
+          const fallbackLocation = `${store.name} ${store.description || ''}`.trim()
+          if (fallbackLocation) {
+            coordinates = await this.geocodeAddress(fallbackLocation)
+          }
+        }
+        
+        // If still no coordinates, skip this store
+        if (!coordinates) {
+          this.geocodingErrors.push({
+            store: store.name,
+            address: address || 'No address found',
+            reason: 'Could not geocode address'
+          })
+          processed++
+          document.getElementById('progress-count').textContent = `${processed}/${this.stores.length}`
+          continue
+        }
+        
+        // Create marker with actual coordinates
+        const marker = L.marker([coordinates.lat, coordinates.lng])
+          .bindPopup(`
+            <div class="p-3 min-w-64">
+              <h6 class="font-bold text-amber-900 mb-2">${store.name}</h6>
+              ${store.description ? `<p class="text-sm text-gray-600 mb-2">${store.description}</p>` : ''}
+              ${address ? `<p class="text-xs text-gray-500 mb-3"><i class="fas fa-map-marker-alt mr-1"></i>${address}</p>` : ''}
+              <div class="flex space-x-2">
+                <button onclick="app.viewStoreFromMap(${store.id})" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition">
+                  View Profile
+                </button>
+                <button onclick="app.recordVisitFromMap(${store.id})" 
+                        class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium transition">
+                  Record Visit
+                </button>
+              </div>
+            </div>
+          `)
+          .addTo(this.map)
+        
+        // Store reference for focusing
+        marker.storeId = store.id
+        marker.storeData = store
+        validMarkers.push(marker)
+        this.storeMarkers.push(marker)
+        
+      } catch (error) {
+        console.warn(`Error processing store ${store.name}:`, error)
+        this.geocodingErrors.push({
+          store: store.name,
+          address: address || 'No address found',
+          reason: error.message
+        })
+      }
+      
+      processed++
+      document.getElementById('progress-count').textContent = `${processed}/${this.stores.length}`
+      
+      // Small delay to prevent rate limiting
+      await new Promise(resolve => setTimeout(resolve, 200))
+    }
+    
+    // Remove loading indicator
+    document.getElementById('geocoding-progress').remove()
+    
+    // Auto-fit map to show all valid markers
+    if (validMarkers.length > 0) {
+      const group = new L.featureGroup(validMarkers)
+      this.map.fitBounds(group.getBounds().pad(0.1))
+    } else {
+      // If no markers were placed, show US map
+      this.map.setView([39.8283, -98.5795], 4)
+    }
+    
+    // Show geocoding summary
+    this.showGeocodingSummary(validMarkers.length, this.geocodingErrors.length)
+  }
+  
+  async geocodeAddress(address) {
+    try {
+      // Use Nominatim (OpenStreetMap) geocoding service
+      const encodedAddress = encodeURIComponent(address)
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}&limit=1`)
+      const data = await response.json()
+      
+      if (data && data.length > 0) {
+        return {
+          lat: parseFloat(data[0].lat),
+          lng: parseFloat(data[0].lon)
+        }
+      }
+      
+      return null
+    } catch (error) {
+      console.warn('Geocoding error:', error)
+      return null
+    }
+  }
+  
+  showGeocodingSummary(successful, failed) {
+    if (failed > 0) {
+      const summaryDiv = document.createElement('div')
+      summaryDiv.className = 'absolute bottom-4 right-4 bg-white p-3 rounded-lg shadow-lg border max-w-sm z-1000'
+      summaryDiv.innerHTML = `
+        <div class="text-sm">
+          <div class="font-medium text-gray-900 mb-2">
+            <i class="fas fa-map-marker-alt text-green-600 mr-1"></i>
+            ${successful} stores located successfully
+          </div>
+          ${failed > 0 ? `
+            <div class="text-amber-600 mb-2">
+              <i class="fas fa-exclamation-triangle mr-1"></i>
+              ${failed} stores could not be located
+            </div>
+            <button onclick="app.showGeocodingErrors()" 
+                    class="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded transition">
+              View Details
+            </button>
+          ` : ''}
+          <button onclick="this.parentElement.remove()" 
+                  class="absolute top-1 right-1 text-gray-400 hover:text-gray-600 text-xs">
+            ×
+          </button>
+        </div>
+      `
+      document.getElementById('storeMap').appendChild(summaryDiv)
+      
+      // Auto-hide after 8 seconds
+      setTimeout(() => {
+        if (summaryDiv.parentElement) {
+          summaryDiv.remove()
+        }
+      }, 8000)
+    }
+  }
+
+  centerMapOnStores() {
+    if (this.map && this.storeMarkers.length > 0) {
+      const group = new L.featureGroup(this.storeMarkers)
+      this.map.fitBounds(group.getBounds().pad(0.1))
+    }
+  }
+
+  showStoreList() {
+    document.getElementById('storeListSidebar').classList.remove('hidden')
+  }
+
+  hideStoreList() {
+    document.getElementById('storeListSidebar').classList.add('hidden')
+  }
+
+  focusStoreOnMap(storeId) {
+    const marker = this.storeMarkers.find(m => m.storeId === storeId)
+    if (marker) {
+      this.map.setView(marker.getLatLng(), 15) // Zoom closer for better view
+      marker.openPopup()
+      
+      // Hide store list after focusing
+      this.hideStoreList()
+    } else {
+      this.showNotification(`Store not found on map (may not have been geocoded)`, 'warning')
+    }
+  }
+  
+  showGeocodingErrors() {
+    if (!this.geocodingErrors || this.geocodingErrors.length === 0) {
+      this.showNotification('No geocoding errors to display', 'info')
+      return
+    }
+    
+    const errorList = this.geocodingErrors.map(error => `
+      <div class="bg-red-50 border border-red-200 rounded p-3 mb-2">
+        <div class="font-medium text-red-900">${error.store}</div>
+        <div class="text-sm text-red-700">Address: ${error.address}</div>
+        <div class="text-xs text-red-600">Reason: ${error.reason}</div>
+      </div>
+    `).join('')
+    
+    const content = `
+      <div class="p-4">
+        <h4 class="text-lg font-semibold text-red-900 mb-4">
+          <i class="fas fa-exclamation-triangle mr-2"></i>
+          Geocoding Errors (${this.geocodingErrors.length})
+        </h4>
+        <div class="max-h-96 overflow-y-auto">
+          ${errorList}
+        </div>
+        <div class="mt-4 text-sm text-gray-600">
+          <p class="mb-2">These stores could not be located on the map. To fix:</p>
+          <ul class="list-disc list-inside space-y-1 text-xs">
+            <li>Ensure store addresses are complete and properly formatted</li>
+            <li>Include city, state, and country information</li>
+            <li>Verify address spelling and accuracy</li>
+            <li>Consider adding address information to store profiles</li>
+          </ul>
+        </div>
+        <div class="mt-4 flex justify-end">
+          <button onclick="app.closeModal('generalModal')" 
+                  class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded transition">
+            Close
+          </button>
+        </div>
+      </div>
+    `
+    
+    this.showGeneralModal('Geocoding Errors', content)
+  }
+  
+  // Enhanced center map function with better bounds calculation
+  centerMapOnStores() {
+    if (this.map && this.storeMarkers.length > 0) {
+      const group = new L.featureGroup(this.storeMarkers)
+      const bounds = group.getBounds()
+      
+      // If all markers are very close together, set a minimum zoom level
+      const boundsSize = Math.max(
+        bounds.getNorthEast().lat - bounds.getSouthWest().lat,
+        bounds.getNorthEast().lng - bounds.getSouthWest().lng
+      )
+      
+      if (boundsSize < 0.01) {
+        // Very close together, zoom to city level
+        this.map.setView(bounds.getCenter(), 12)
+      } else {
+        // Normal bounds fitting with padding
+        this.map.fitBounds(bounds.pad(0.1))
+      }
+    } else {
+      // No markers found, show default US view
+      this.map.setView([39.8283, -98.5795], 4)
+      this.showNotification('No store locations found on map', 'warning')
+    }
+  }
+
+  viewStoreFromMap(storeId) {
+    // Close map modal and show store profile
+    this.closeModal('mapModal')
+    this.showStoreModal(storeId)
+  }
+
+  recordVisitFromMap(storeId) {
+    // Close map modal and show visit recording
+    this.closeModal('mapModal')
+    this.showVisitModal()
+    // Pre-select the store in the visit form
+    setTimeout(() => {
+      const storeSelect = document.getElementById('visitAccountSelect')
+      if (storeSelect) {
+        storeSelect.value = storeId
+      }
+    }, 100)
+  }
+
+  showGeneralModal(title, content) {
+    document.getElementById('generalModalTitle').textContent = title
+    document.getElementById('generalModalContent').innerHTML = content
+    this.showModal('generalModal')
   }
 
   showBulkImportForm(storeId) {
