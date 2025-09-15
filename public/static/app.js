@@ -18,6 +18,11 @@ class JewelryStoreApp {
       this.showAddStoreForm()
     })
 
+    // Bulk import stores button
+    document.getElementById('bulkImportStoresBtn').addEventListener('click', () => {
+      this.showStoresBulkImportForm()
+    })
+
 
 
     // Filter and sort controls
@@ -3049,6 +3054,233 @@ Precious Gems Co.	Michael Chen	(424) 555-0789	789 Sunset Blvd, West Hollywood, C
         }
       }, 300)
     }, 3000)
+  }
+
+  // ===== BULK IMPORT FUNCTIONALITY =====
+
+  showStoresBulkImportForm() {
+    const content = `
+      <div class="space-y-6">
+        <!-- Instructions -->
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <h4 class="font-semibold text-purple-800 mb-2">
+            <i class="fas fa-info-circle mr-2"></i>
+            How to Import Multiple Stores
+          </h4>
+          <div class="text-sm text-purple-700 space-y-2">
+            <p><strong>Method 1: Upload CSV/Excel File</strong></p>
+            <ul class="list-disc ml-4 space-y-1">
+              <li>Download our template file below</li>
+              <li>Fill in your store data (one store per row)</li>
+              <li>Upload the completed file</li>
+            </ul>
+            <p class="mt-3"><strong>Method 2: Copy & Paste from Spreadsheet</strong></p>
+            <ul class="list-disc ml-4 space-y-1">
+              <li>Copy data from Excel/Google Sheets (including headers)</li>
+              <li>Paste directly into the text area below</li>
+              <li>Click "Import Stores" to process</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Template Download -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h4 class="font-semibold text-blue-800 mb-2">
+            <i class="fas fa-download mr-2"></i>
+            Download Template
+          </h4>
+          <p class="text-sm text-blue-700 mb-3">Get started with our sample template file:</p>
+          <a href="/api/excel-template/stores" 
+             download="jewelry_stores_template.csv"
+             class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition duration-200">
+            <i class="fas fa-file-csv mr-2"></i>
+            Download CSV Template
+          </a>
+        </div>
+
+        <!-- File Upload -->
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <h4 class="font-semibold text-gray-800 mb-2">
+            <i class="fas fa-upload mr-2"></i>
+            Upload File
+          </h4>
+          <input type="file" 
+                 id="bulkImportFile" 
+                 accept=".csv,.xlsx,.xls" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-4 focus:ring-blue-300 focus:border-blue-500 focus:outline-none bg-white">
+          <p class="text-xs text-gray-600 mt-1">Accepts CSV, XLS, and XLSX files</p>
+        </div>
+
+        <!-- Copy/Paste Area -->
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <h4 class="font-semibold text-gray-800 mb-2">
+            <i class="fas fa-paste mr-2"></i>
+            Or Paste Data Directly
+          </h4>
+          <textarea id="bulkImportData" 
+                    rows="8" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-4 focus:ring-blue-300 focus:border-blue-500 focus:outline-none bg-white font-mono text-sm"
+                    placeholder="Paste your CSV data here... Include headers in the first row."></textarea>
+          <p class="text-xs text-gray-600 mt-1">Paste CSV data from Excel/Google Sheets (Ctrl+V)</p>
+        </div>
+
+        <!-- Import Button -->
+        <div class="flex justify-end space-x-3 pt-4 border-t">
+          <button onclick="app.closeModal('generalModal')" 
+                  class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg transition duration-200">
+            Cancel
+          </button>
+          <button onclick="app.processBulkImport()" 
+                  class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition duration-200 flex items-center">
+            <i class="fas fa-upload mr-2"></i>
+            Import Stores
+          </button>
+        </div>
+      </div>
+    `
+
+    document.getElementById('generalModalTitle').textContent = 'Import Multiple Stores'
+    document.getElementById('generalModalContent').innerHTML = content
+    this.openModal('generalModal')
+  }
+
+  async processBulkImport() {
+    try {
+      let csvData = ''
+      const fileInput = document.getElementById('bulkImportFile')
+      const textInput = document.getElementById('bulkImportData')
+
+      // Check if file was uploaded
+      if (fileInput.files.length > 0) {
+        const file = fileInput.files[0]
+        csvData = await this.readFileAsText(file)
+        this.showNotification('Processing uploaded file...', 'info')
+      } else if (textInput.value.trim()) {
+        csvData = textInput.value.trim()
+        this.showNotification('Processing pasted data...', 'info')
+      } else {
+        this.showNotification('Please upload a file or paste data to import', 'error')
+        return
+      }
+
+      // Parse CSV data
+      const stores = this.parseCSVData(csvData)
+      
+      if (stores.length === 0) {
+        this.showNotification('No valid store data found. Check your CSV format.', 'error')
+        return
+      }
+
+      console.log('Parsed stores for import:', stores)
+
+      // Send to bulk import API
+      const response = await axios.post('/api/stores/bulk-import', {
+        store_data: stores
+      })
+
+      console.log('Bulk import response:', response.data)
+
+      if (response.data.success) {
+        this.showNotification(response.data.message, 'success')
+        this.closeModal('generalModal')
+        await this.loadStores() // Refresh stores list
+      } else {
+        let errorMsg = response.data.message || 'Import failed'
+        if (response.data.results && response.data.results.errors.length > 0) {
+          errorMsg += '\\n\\nErrors:\\n' + response.data.results.errors.slice(0, 3).join('\\n')
+          if (response.data.results.errors.length > 3) {
+            errorMsg += `\\n... and ${response.data.results.errors.length - 3} more errors`
+          }
+        }
+        this.showNotification(errorMsg, 'error')
+      }
+
+    } catch (error) {
+      console.error('Bulk import error:', error)
+      this.showNotification('Error during import: ' + error.message, 'error')
+    }
+  }
+
+  readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = e => resolve(e.target.result)
+      reader.onerror = e => reject(new Error('Failed to read file'))
+      reader.readAsText(file)
+    })
+  }
+
+  parseCSVData(csvText) {
+    const lines = csvText.split('\\n').filter(line => line.trim())
+    if (lines.length < 2) return []
+
+    const headers = this.parseCSVLine(lines[0])
+    const stores = []
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = this.parseCSVLine(lines[i])
+      if (values.length === 0) continue
+
+      const store = {}
+      headers.forEach((header, index) => {
+        if (values[index] !== undefined) {
+          store[this.normalizeHeaderName(header)] = values[index].trim()
+        }
+      })
+
+      // Only add stores with at least a name
+      if (store.name && store.name.trim()) {
+        stores.push(store)
+      }
+    }
+
+    return stores
+  }
+
+  parseCSVLine(line) {
+    const result = []
+    let current = ''
+    let inQuotes = false
+    let i = 0
+
+    while (i < line.length) {
+      const char = line[i]
+      
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"'
+          i++ // Skip next quote
+        } else {
+          inQuotes = !inQuotes
+        }
+      } else if (char === ',' && !inQuotes) {
+        result.push(current)
+        current = ''
+      } else {
+        current += char
+      }
+      i++
+    }
+    
+    result.push(current) // Add last field
+    return result
+  }
+
+  normalizeHeaderName(header) {
+    const normalized = header.toLowerCase().trim()
+    
+    // Map various header formats to standard field names
+    if (normalized.includes('account') || normalized.includes('store') || normalized.includes('name')) {
+      return 'name'
+    }
+    if (normalized.includes('description') || normalized.includes('note')) {
+      return 'description'  
+    }
+    if (normalized.includes('logo') || normalized.includes('image')) {
+      return 'logo_url'
+    }
+    
+    return normalized.replace(/[^a-z0-9]/g, '_')
   }
 }
 

@@ -264,6 +264,86 @@ app.delete('/api/stores/:id', async (c) => {
   return c.json({ success: true })
 })
 
+// Bulk import stores from Excel/CSV data
+app.post('/api/stores/bulk-import', async (c) => {
+  const { env } = c
+  const { store_data } = await c.req.json()
+  await initDB(env.DB)
+  
+  const results = {
+    successful: 0,
+    failed: 0,
+    errors: [] as string[],
+    created_ids: [] as number[]
+  }
+  
+  if (!store_data || !Array.isArray(store_data)) {
+    return c.json({ error: 'Invalid store data. Expected an array of store objects.' }, 400)
+  }
+  
+  console.log(`Processing bulk import of ${store_data.length} stores...`)
+  
+  // Process each store
+  for (let i = 0; i < store_data.length; i++) {
+    const store = store_data[i]
+    
+    try {
+      // Validate required fields
+      if (!store.name || typeof store.name !== 'string' || store.name.trim() === '') {
+        results.failed++
+        results.errors.push(`Row ${i + 2}: Store name is required`)
+        continue
+      }
+      
+      // Clean and prepare data
+      const storeData = {
+        name: store.name.trim(),
+        description: store.description ? String(store.description).trim() : null,
+        logo_url: store.logo_url ? String(store.logo_url).trim() : null
+      }
+      
+      // Insert into database
+      const result = await env.DB.prepare(`
+        INSERT INTO stores (name, description, logo_url) 
+        VALUES (?, ?, ?)
+      `).bind(storeData.name, storeData.description, storeData.logo_url).run()
+      
+      results.successful++
+      results.created_ids.push(result.meta.last_row_id as number)
+      console.log(`Successfully imported store: ${storeData.name}`)
+      
+    } catch (error) {
+      results.failed++
+      const errorMsg = `Row ${i + 2}: ${store.name || 'Unknown'} - ${error.message}`
+      results.errors.push(errorMsg)
+      console.error(`Import error for store ${i + 1}:`, error)
+    }
+  }
+  
+  console.log(`Bulk import completed: ${results.successful} successful, ${results.failed} failed`)
+  
+  return c.json({
+    success: results.successful > 0,
+    message: `Import completed: ${results.successful} stores added, ${results.failed} failed`,
+    results
+  })
+})
+
+// Download Excel template for stores
+app.get('/api/excel-template/stores', (c) => {
+  const template = `Account,Contact,Phone Number,Store Address,Website,Facebook Link,Email Address,Monday Store Hours,Tuesday Store Hours,Wednesday Store Hours,Thursday Store Hours,Friday Store Hours,Saturday Store Hours,Sunday Store Hours,Notes,Net Sales FY 2025,Net Sales FY 2024,Net Sales FY 2023,Status
+"Diamond District Jewelers","Sarah Johnson","(555) 123-4567","123 Main St, New York, NY 10001","https://diamonddistrict.com","https://facebook.com/diamonddistrict","sarah@diamonddistrict.com","9:00 AM - 6:00 PM","9:00 AM - 6:00 PM","9:00 AM - 6:00 PM","9:00 AM - 7:00 PM","9:00 AM - 7:00 PM","10:00 AM - 5:00 PM","Closed","High-end engagement rings","$750,000","$680,000","$620,000","Active"
+"Golden Gate Gems","Michael Chen","(555) 234-5678","456 Market St, San Francisco, CA 94102","https://goldengatgems.com","","michael@goldengategems.com","10:00 AM - 7:00 PM","10:00 AM - 7:00 PM","10:00 AM - 7:00 PM","10:00 AM - 8:00 PM","10:00 AM - 8:00 PM","9:00 AM - 6:00 PM","11:00 AM - 4:00 PM","Custom design specialists","$450,000","$420,000","$380,000","Active"
+"Heritage Jewelry Co.","Emma Rodriguez","(555) 345-6789","789 Oak Ave, Chicago, IL 60601","","https://facebook.com/heritagejewelry","emma@heritagejewelry.com","9:30 AM - 6:30 PM","9:30 AM - 6:30 PM","9:30 AM - 6:30 PM","9:30 AM - 7:30 PM","9:30 AM - 7:30 PM","10:00 AM - 5:00 PM","Closed","Family-owned since 1952","$320,000","$295,000","$275,000","Active"`
+
+  return new Response(template, {
+    headers: {
+      'Content-Type': 'text/csv',
+      'Content-Disposition': 'attachment; filename="jewelry_stores_template.csv"'
+    }
+  })
+})
+
 // Bulk import stores from Excel data
 app.post('/api/stores/bulk-import', async (c) => {
   const { env } = c
@@ -1319,7 +1399,15 @@ app.get('/', requireAuth, (c) => {
                   Jewelry Stores
                 </h2>
                 <div className="flex space-x-2" role="group" aria-label="Store management actions">
-
+                  <button 
+                    id="bulkImportStoresBtn" 
+                    className="bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 focus:outline-none text-white px-3 py-2 rounded-lg transition duration-200 flex items-center text-sm"
+                    aria-label="Import multiple stores from Excel or CSV"
+                    tabindex="0"
+                  >
+                    <i className="fas fa-file-import mr-2" aria-hidden="true"></i>
+                    Import Stores
+                  </button>
                   <button 
                     id="addStoreBtn" 
                     className="bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 focus:outline-none text-white px-4 py-2 rounded-lg transition duration-200 flex items-center"
@@ -1379,7 +1467,22 @@ app.get('/', requireAuth, (c) => {
                 </button>
               </div>
             </div>
-            
+
+            {/* Bulk Import Instructions */}
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg" role="region" aria-label="Import instructions">
+              <div className="flex items-start space-x-3">
+                <i className="fas fa-lightbulb text-blue-600 mt-1" aria-label="Tip icon"></i>
+                <div className="flex-1">
+                  <h4 className="font-medium text-blue-800 mb-1">Quick Setup: Import Multiple Stores</h4>
+                  <p className="text-sm text-blue-700 mb-2">Save time by importing jewelry stores from Excel or copying data directly from spreadsheets.</p>
+                  <a href="/api/excel-template/stores" target="_blank" 
+                     className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 focus:ring-4 focus:ring-blue-300 focus:outline-none font-medium px-2 py-1 rounded"
+                     aria-label="Download Excel template for importing stores">
+                    <i className="fas fa-download mr-1" aria-hidden="true"></i>Download Template
+                  </a>
+                </div>
+              </div>
+            </div>
 
             <div id="storesList" className="space-y-4">
               {/* Stores will be loaded here */}
