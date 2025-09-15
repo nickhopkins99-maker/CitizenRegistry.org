@@ -77,9 +77,18 @@ A mobile-optimized web application for managing jewelry store accounts and staff
   - Multiple visits per day with "+" counter for overflow
 - **Responsive Design** - Stacks vertically on mobile, side-by-side on desktop
 - **Quick Record Access** - "Record New Visit" button available directly in calendar
+- **Visit Management** - Complete CRUD operations for visits directly in calendar:
+  - **Edit Visits** - Blue pencil icon in activity log opens pre-populated edit form
+  - **Delete Visits** - Red trash icon in activity log with confirmation dialog
+  - **Calendar Grid Actions** - Click visit indicators in calendar for edit/delete options
+  - **Form Validation** - Ensures required fields and data integrity
+  - **Real-time Updates** - Calendar automatically refreshes after changes
 - **Empty State Guidance** - Encourages users to record their first visit if calendar is empty
 - **Seamless Integration** - Calendar data syncs with Today's Visit functionality
-- **REST API Endpoint** - `/api/calendar/visits` provides grouped visit data for calendar display
+- **REST API Endpoints** - Full CRUD API support:
+  - `GET /api/calendar/visits` - Grouped visit data for calendar display
+  - `GET /api/visits/:id` - Fetch single visit for editing ✨ NEW!
+  - `PUT /api/visits/:id` - Update visit with store change support ✨ NEW!
 
 ### 🔍 Advanced Filtering & Sorting (ENHANCED!)
 - **All Accounts** - Display every account in the database (default view)
@@ -247,10 +256,11 @@ Name | Role | Year Started | Certifications | Languages | Specialties | Educatio
 
 ### Visits
 - `POST /api/visits` - Create new visit record
+- `GET /api/visits/:id` - Get single visit with store details ✨ NEW!
 - `GET /api/stores/:storeId/visits` - Get all visits for a specific store
 - `GET /api/visits/recent` - Get recent visits across all stores (limit 50)
 - `GET /api/calendar/visits` - Get all visits grouped by date for calendar display ✨ NEW!
-- `PUT /api/visits/:id` - Update visit record
+- `PUT /api/visits/:id` - Update visit record (supports store changes) ✨ ENHANCED!
 - `DELETE /api/visits/:id` - Delete visit record
 
 ### File Upload
