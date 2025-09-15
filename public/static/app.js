@@ -63,6 +63,15 @@ class JewelryStoreApp {
       this.closeModal('visitModal')
     })
 
+    // Calendar button
+    document.getElementById('calendarBtn').addEventListener('click', () => {
+      this.showCalendarModal()
+    })
+
+    document.getElementById('closeCalendarModal').addEventListener('click', () => {
+      this.closeModal('calendarModal')
+    })
+
     // Click outside modal to close
     document.getElementById('storeModal').addEventListener('click', (e) => {
       if (e.target.id === 'storeModal') this.closeModal('storeModal')
@@ -78,6 +87,10 @@ class JewelryStoreApp {
 
     document.getElementById('visitModal').addEventListener('click', (e) => {
       if (e.target.id === 'visitModal') this.closeModal('visitModal')
+    })
+
+    document.getElementById('calendarModal').addEventListener('click', (e) => {
+      if (e.target.id === 'calendarModal') this.closeModal('calendarModal')
     })
   }
 
@@ -1305,6 +1318,145 @@ class JewelryStoreApp {
           <p>Error loading visit history</p>
         </div>
       `
+    }
+  }
+
+  async showCalendarModal() {
+    try {
+      // Fetch all visits for calendar
+      const response = await axios.get('/api/calendar/visits')
+      const data = response.data
+      
+      if (!data.success) {
+        throw new Error('Failed to load calendar data')
+      }
+      
+      const visitsByDate = data.visitsByDate
+      const allVisits = data.visits
+      
+      // Generate calendar HTML
+      const content = `
+        <div class="space-y-6">
+          <!-- Calendar Header -->
+          <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h4 class="text-lg font-semibold text-purple-900 mb-1">
+                  <i class="fas fa-calendar-check mr-2"></i>
+                  Visit Calendar
+                </h4>
+                <p class="text-sm text-purple-700">
+                  Total visits recorded: <span class="font-medium">${data.totalVisits}</span>
+                </p>
+              </div>
+              <button onclick="app.showVisitModal()" 
+                      class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm font-medium">
+                <i class="fas fa-plus mr-2"></i>
+                Record New Visit
+              </button>
+            </div>
+          </div>
+          
+          ${Object.keys(visitsByDate).length === 0 ? `
+            <!-- No visits message -->
+            <div class="text-center py-12 text-gray-500">
+              <i class="fas fa-calendar-times text-4xl mb-4 text-gray-300"></i>
+              <h3 class="text-lg font-medium text-gray-600 mb-2">No Visits Recorded Yet</h3>
+              <p class="text-gray-500 mb-4">Start tracking your account visits to see them here</p>
+              <button onclick="app.showVisitModal()" 
+                      class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition duration-200 font-medium">
+                <i class="fas fa-calendar-plus mr-2"></i>
+                Record Your First Visit
+              </button>
+            </div>
+          ` : `
+            <!-- Visits by date -->
+            <div class="space-y-4 max-h-96 overflow-y-auto">
+              ${Object.keys(visitsByDate)
+                .sort((a, b) => new Date(b) - new Date(a)) // Sort dates in descending order
+                .map(date => {
+                  const visits = visitsByDate[date]
+                  const visitDate = new Date(date)
+                  const formattedDate = visitDate.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })
+                  
+                  return `
+                    <div class="bg-amber-25 border border-amber-200 rounded-lg">
+                      <div class="bg-amber-100 px-4 py-3 border-b border-amber-200 rounded-t-lg">
+                        <h5 class="font-medium text-amber-900">
+                          <i class="fas fa-calendar-day text-amber-700 mr-2"></i>
+                          ${formattedDate}
+                          <span class="text-sm font-normal text-amber-700 ml-2">(${visits.length} visit${visits.length !== 1 ? 's' : ''})</span>
+                        </h5>
+                      </div>
+                      <div class="p-4 space-y-3">
+                        ${visits.map(visit => {
+                          const timeDisplay = visit.visit_time ? 
+                            new Date(`2000-01-01T${visit.visit_time}`).toLocaleTimeString('en-US', {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true
+                            }) : 'No time specified'
+                          
+                          return `
+                            <div class="bg-white rounded-lg p-4 border border-amber-200 hover:shadow-md transition duration-200">
+                              <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                  <div class="flex items-center mb-2">
+                                    <i class="fas fa-store text-blue-600 mr-2"></i>
+                                    <span class="font-medium text-gray-800">${visit.store_name}</span>
+                                    <span class="text-sm text-gray-500 ml-2">at ${timeDisplay}</span>
+                                  </div>
+                                  ${visit.notes ? `
+                                    <div class="mb-2">
+                                      <i class="fas fa-sticky-note text-purple-500 mr-2"></i>
+                                      <span class="text-sm text-gray-700">${visit.notes}</span>
+                                    </div>
+                                  ` : ''}
+                                  <div class="text-xs text-gray-500">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    Recorded: ${new Date(visit.created_at).toLocaleTimeString('en-US', {
+                                      hour: 'numeric', 
+                                      minute: '2-digit',
+                                      hour12: true
+                                    })}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          `
+                        }).join('')}
+                      </div>
+                    </div>
+                  `
+                }).join('')}
+            </div>
+          `}
+        </div>
+      `
+      
+      document.getElementById('calendarModalContent').innerHTML = content
+      this.showModal('calendarModal')
+      
+    } catch (error) {
+      console.error('Error loading calendar:', error)
+      document.getElementById('calendarModalContent').innerHTML = `
+        <div class="text-center py-12 text-red-500">
+          <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+          <h3 class="text-lg font-medium mb-2">Error Loading Calendar</h3>
+          <p class="text-red-600 mb-4">Unable to load visit calendar data</p>
+          <button onclick="app.showCalendarModal()" 
+                  class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200">
+            <i class="fas fa-refresh mr-2"></i>
+            Try Again
+          </button>
+        </div>
+      `
+      this.showModal('calendarModal')
     }
   }
 

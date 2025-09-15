@@ -973,6 +973,45 @@ app.delete('/api/visits/:id', async (c) => {
   }
 })
 
+// Get all visits for calendar (grouped by date)
+app.get('/api/calendar/visits', async (c) => {
+  const { env } = c
+  await initDB(env.DB)
+  
+  try {
+    const visits = await env.DB.prepare(`
+      SELECT 
+        v.*,
+        s.name as store_name,
+        s.description as store_description
+      FROM visits v
+      JOIN stores s ON v.store_id = s.id
+      ORDER BY v.visit_date DESC, v.visit_time DESC
+      LIMIT 100
+    `).all()
+    
+    // Group visits by date
+    const visitsByDate = {}
+    visits.results.forEach((visit: any) => {
+      const date = visit.visit_date
+      if (!visitsByDate[date]) {
+        visitsByDate[date] = []
+      }
+      visitsByDate[date].push(visit)
+    })
+    
+    return c.json({ 
+      success: true,
+      visits: visits.results,
+      visitsByDate,
+      totalVisits: visits.results.length
+    })
+  } catch (error) {
+    console.error('Error fetching calendar visits:', error)
+    return c.json({ error: 'Failed to fetch visits' }, 500)
+  }
+})
+
 // Main application page
 app.get('/', (c) => {
   return c.render(
@@ -997,6 +1036,15 @@ app.get('/', (c) => {
               >
                 <i className="fas fa-calendar-plus mr-2" aria-hidden="true"></i>
                 Today's Visit
+              </button>
+              <button 
+                id="calendarBtn" 
+                className="bg-purple-600 hover:bg-purple-700 focus:ring-4 focus:ring-purple-300 focus:outline-none text-white px-4 py-2 rounded-lg transition duration-200 flex items-center text-sm shadow-md"
+                aria-label="View calendar of all visits"
+                tabindex="0"
+              >
+                <i className="fas fa-calendar mr-2" aria-hidden="true"></i>
+                Calendar
               </button>
               <button 
                 id="siteDataBtn" 
@@ -1192,6 +1240,28 @@ app.get('/', (c) => {
                   <div id="visitModalContent">
                     {/* Visit content will be loaded here */}
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Calendar Modal */}
+          <div id="calendarModal" className="fixed inset-0 bg-amber-25 hidden z-50" role="dialog" aria-modal="true" aria-labelledby="calendarModalTitle">
+            <div className="h-full flex flex-col">
+              <div className="bg-amber-100 border-b border-amber-200 px-6 py-4">
+                <div className="flex justify-between items-center">
+                  <h3 id="calendarModalTitle" className="text-2xl font-semibold text-amber-900">
+                    <i className="fas fa-calendar text-purple-600 mr-2" aria-label="Calendar icon"></i>
+                    Visit Calendar
+                  </h3>
+                  <button id="closeCalendarModal" className="text-amber-700 hover:text-amber-900 focus:ring-4 focus:ring-blue-300 focus:outline-none p-2 rounded" aria-label="Close calendar modal">
+                    <i className="fas fa-times text-xl" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto bg-amber-50">
+                <div id="calendarModalContent" className="p-6">
+                  {/* Calendar content will be loaded here */}
                 </div>
               </div>
             </div>
