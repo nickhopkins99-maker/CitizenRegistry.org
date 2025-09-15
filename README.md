@@ -66,12 +66,17 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 
 ### 📆 Visit Calendar (NEW!)
 - **Calendar Button** - Purple button in header to view all recorded visits
-- **Full-Screen Calendar Modal** - Amber-themed calendar interface matching app design
-- **Date-Based Grouping** - All visits organized by date in chronological order (newest first)
-- **Visit Details** - Each visit shows store name, time, notes, and recording timestamp
-- **Visit Count Display** - Shows total number of visits and count per day
+- **Dual Layout Design** - Split-screen calendar with Activity Log (left) and Visual Calendar (right)
+- **Activity Log Panel** - Chronological list of all visits with store names, times, and truncated notes
+- **Visual Calendar Grid** - Proper month calendar showing visits on actual dates with:
+  - Month/year navigation header with previous/next buttons
+  - Day-of-week headers (Sun-Mon-Tue-Wed-Thu-Fri-Sat)
+  - Calendar grid displaying visits as green indicators on appropriate dates
+  - Today's date highlighted with purple ring
+  - Visit tooltips showing store name, time, and notes on hover
+  - Multiple visits per day with "+" counter for overflow
+- **Responsive Design** - Stacks vertically on mobile, side-by-side on desktop
 - **Quick Record Access** - "Record New Visit" button available directly in calendar
-- **Responsive Design** - Mobile-optimized calendar view with touch-friendly interface
 - **Empty State Guidance** - Encourages users to record their first visit if calendar is empty
 - **Seamless Integration** - Calendar data syncs with Today's Visit functionality
 - **REST API Endpoint** - `/api/calendar/visits` provides grouped visit data for calendar display
