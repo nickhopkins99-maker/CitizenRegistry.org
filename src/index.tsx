@@ -4,8 +4,8 @@ import { serveStatic } from 'hono/cloudflare-workers'
 import { renderer } from './renderer'
 
 type Bindings = {
-  DB?: D1Database
-  IMAGES?: R2Bucket
+  DB: D1Database
+  IMAGES: R2Bucket
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -93,15 +93,6 @@ const initDB = async (db: D1Database) => {
 // Get all stores
 app.get('/api/stores', async (c) => {
   const { env } = c
-  
-  if (!env.DB) {
-    return c.json({ 
-      error: 'Database not available', 
-      message: 'Database configuration required for full functionality',
-      results: []
-    })
-  }
-  
   await initDB(env.DB)
   
   const stores = await env.DB.prepare(`
