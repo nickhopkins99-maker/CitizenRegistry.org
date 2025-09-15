@@ -38,6 +38,18 @@ app.use(renderer)
 
 // Initialize database tables
 const initDB = async (db: D1Database) => {
+  // Create images table for photo storage
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS images (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      filename TEXT NOT NULL,
+      content_type TEXT NOT NULL,
+      file_size INTEGER NOT NULL,
+      base64_data TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run()
+
   // Create stores table
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS stores (
@@ -217,15 +229,29 @@ app.post('/api/stores', async (c) => {
 app.put('/api/stores/:id', async (c) => {
   const { env } = c
   const storeId = c.req.param('id')
-  const { name, description, logo_url } = await c.req.json()
+  const updateData = await c.req.json()
   await initDB(env.DB)
   
+  // Get current store data
+  const currentStore = await env.DB.prepare('SELECT * FROM stores WHERE id = ?').bind(storeId).first()
+  if (!currentStore) {
+    return c.json({ error: 'Store not found' }, 404)
+  }
+  
+  // Merge with existing data - only update provided fields
+  const name = updateData.name !== undefined ? updateData.name : currentStore.name
+  const description = updateData.description !== undefined ? updateData.description : currentStore.description
+  const logo_url = updateData.logo_url !== undefined ? updateData.logo_url : currentStore.logo_url
+  
+  // Update store
   await env.DB.prepare(`
     UPDATE stores SET name = ?, description = ?, logo_url = ?, updated_at = CURRENT_TIMESTAMP 
     WHERE id = ?
   `).bind(name, description, logo_url, storeId).run()
   
-  return c.json({ success: true })
+  // Return updated store
+  const updatedStore = await env.DB.prepare('SELECT * FROM stores WHERE id = ?').bind(storeId).first()
+  return c.json(updatedStore)
 })
 
 // Delete store
@@ -611,42 +637,94 @@ app.delete('/api/staff/sections/:id', async (c) => {
 // Image upload endpoint
 app.post('/api/upload', async (c) => {
   const { env } = c
-  const formData = await c.req.formData()
-  const file = formData.get('file') as File
-  
-  if (!file) {
-    return c.json({ error: 'No file provided' }, 400)
-  }
-  
-  const fileExtension = file.name.split('.').pop()
-  const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`
   
   try {
-    await env.IMAGES.put(fileName, file.stream(), {
-      httpMetadata: { contentType: file.type }
+    const formData = await c.req.formData()
+    const file = formData.get('file') as File
+    
+    if (!file) {
+      return c.json({ error: 'No file provided' }, 400)
+    }
+    
+    console.log(`Uploading file: ${file.name}, Type: ${file.type}, Size: ${file.size}`)
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      return c.json({ error: 'Please upload an image file' }, 400)
+    }
+    
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      return c.json({ error: 'File too large (max 10MB)' }, 400)
+    }
+    
+    await initDB(env.DB)
+    
+    // Convert to base64 for database storage
+    const arrayBuffer = await file.arrayBuffer()
+    const uint8Array = new Uint8Array(arrayBuffer)
+    const base64 = btoa(String.fromCharCode.apply(null, Array.from(uint8Array)))
+    
+    // Store in database
+    const result = await env.DB.prepare(`
+      INSERT INTO images (filename, content_type, file_size, base64_data)
+      VALUES (?, ?, ?, ?)
+    `).bind(file.name, file.type, file.size, base64).run()
+    
+    const imageId = result.meta.last_row_id
+    const imageUrl = `/api/images/${imageId}`
+    
+    console.log(`Image stored successfully with ID: ${imageId}`)
+    
+    return c.json({ 
+      success: true,
+      url: imageUrl,
+      id: imageId
     })
     
-    return c.json({ url: `/api/images/${fileName}` })
   } catch (error) {
-    return c.json({ error: 'Upload failed' }, 500)
+    console.error('Upload error:', error)
+    return c.json({ error: 'Upload failed: ' + error.message }, 500)
   }
 })
 
 // Serve uploaded images
-app.get('/api/images/:fileName', async (c) => {
+app.get('/api/images/:imageId', async (c) => {
   const { env } = c
-  const fileName = c.req.param('fileName')
+  const imageId = c.req.param('imageId')
   
-  const object = await env.IMAGES.get(fileName)
-  if (!object) {
+  try {
+    await initDB(env.DB)
+    
+    // Get image from database
+    const image = await env.DB.prepare(`
+      SELECT filename, content_type, base64_data, file_size
+      FROM images WHERE id = ?
+    `).bind(imageId).first()
+    
+    if (!image) {
+      return c.notFound()
+    }
+    
+    // Convert base64 back to binary
+    const binaryString = atob(image.base64_data)
+    const bytes = new Uint8Array(binaryString.length)
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i)
+    }
+    
+    return new Response(bytes, {
+      headers: {
+        'Content-Type': image.content_type,
+        'Content-Length': image.file_size.toString(),
+        'Cache-Control': 'public, max-age=31536000'
+      }
+    })
+    
+  } catch (error) {
+    console.error('Error serving image:', error)
     return c.notFound()
   }
-  
-  return new Response(object.body, {
-    headers: {
-      'Content-Type': object.httpMetadata?.contentType || 'image/jpeg'
-    }
-  })
 })
 
 // Site Data API Endpoints
@@ -1210,15 +1288,7 @@ app.get('/', requireAuth, (c) => {
                 <i className="fas fa-calendar mr-2" aria-hidden="true"></i>
                 Calendar
               </button>
-              <button 
-                id="siteDataBtn" 
-                className="bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 focus:outline-none text-white px-4 py-2 rounded-lg transition duration-200 flex items-center text-sm shadow-md"
-                aria-label="Access site data management and statistics"
-                tabindex="0"
-              >
-                <i className="fas fa-database mr-2" aria-hidden="true"></i>
-                Site Data
-              </button>
+
               <button 
                 id="mapBtn" 
                 className="bg-orange-600 hover:bg-orange-700 focus:ring-4 focus:ring-orange-300 focus:outline-none text-white px-4 py-2 rounded-lg transition duration-200 flex items-center text-sm shadow-md"
@@ -1249,15 +1319,7 @@ app.get('/', requireAuth, (c) => {
                   Jewelry Stores
                 </h2>
                 <div className="flex space-x-2" role="group" aria-label="Store management actions">
-                  <button 
-                    id="bulkImportStoresBtn" 
-                    className="bg-amber-600 hover:bg-amber-700 focus:ring-4 focus:ring-amber-300 focus:outline-none text-white px-3 py-2 rounded-lg transition duration-200 flex items-center text-sm"
-                    aria-label="Import multiple stores from Excel file"
-                    tabindex="0"
-                  >
-                    <i className="fas fa-file-excel mr-2" aria-hidden="true"></i>
-                    Import Stores
-                  </button>
+
                   <button 
                     id="addStoreBtn" 
                     className="bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 focus:outline-none text-white px-4 py-2 rounded-lg transition duration-200 flex items-center"
@@ -1318,21 +1380,7 @@ app.get('/', requireAuth, (c) => {
               </div>
             </div>
             
-            {/* Bulk Import Info */}
-            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg" role="region" aria-label="Import instructions">
-              <div className="flex items-start space-x-3">
-                <i className="fas fa-lightbulb text-blue-600 mt-1" aria-label="Tip icon"></i>
-                <div className="flex-1">
-                  <h4 className="font-medium text-blue-800 mb-1">Quick Setup: Import Multiple Stores</h4>
-                  <p className="text-sm text-blue-700 mb-2">Import jewelry stores from Excel or copy-paste data directly from spreadsheets.</p>
-                  <a href="/api/excel-template/stores" target="_blank" 
-                     className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 focus:ring-4 focus:ring-blue-300 focus:outline-none font-medium px-2 py-1 rounded"
-                     aria-label="Download Excel template for importing stores">
-                    <i className="fas fa-download mr-1" aria-hidden="true"></i>Download Stores Template
-                  </a>
-                </div>
-              </div>
-            </div>
+
             <div id="storesList" className="space-y-4">
               {/* Stores will be loaded here */}
             </div>
@@ -1381,28 +1429,7 @@ app.get('/', requireAuth, (c) => {
             </div>
           </div>
 
-          {/* Site Data Modal */}
-          <div id="siteDataModal" className="fixed inset-0 bg-black bg-opacity-50 hidden z-50" role="dialog" aria-modal="true" aria-labelledby="siteDataModalTitle">
-            <div className="flex items-center justify-center min-h-screen p-4">
-              <div className="bg-amber-25 border border-amber-200 rounded-lg w-full max-w-4xl max-h-screen overflow-y-auto">
-                <div className="p-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 id="siteDataModalTitle" className="text-2xl font-semibold text-amber-900">
-                      <i className="fas fa-database text-blue-600 mr-2" aria-label="Database management icon"></i>
-                      Site Data Management
-                    </h3>
-                    <button id="closeSiteDataModal" className="text-amber-700 hover:text-amber-900 focus:ring-4 focus:ring-blue-300 focus:outline-none p-2 rounded"
-                            aria-label="Close site data management modal">
-                      <i className="fas fa-times text-xl" aria-hidden="true"></i>
-                    </button>
-                  </div>
-                  <div id="siteDataContent">
-                    {/* Site data content will be loaded here */}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+
 
           {/* Today's Visit Modal */}
           <div id="visitModal" className="fixed inset-0 bg-black bg-opacity-50 hidden z-50" role="dialog" aria-modal="true" aria-labelledby="visitModalTitle">

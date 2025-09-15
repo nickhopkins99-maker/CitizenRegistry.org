@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Photo Upload Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+</head>
+<body style="padding: 20px; font-family: Arial, sans-serif;">
+    <h1>Direct Photo Upload Test</h1>
+    <div style="margin: 20px 0;">
+        <input type="file" id="fileInput" accept="image/*" style="margin: 10px 0;">
+        <br>
+        <button onclick="testUpload()" style="background: #007cba; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+            Upload Photo
+        </button>
+    </div>
+    
+    <div id="result" style="margin: 20px 0; padding: 10px; border: 1px solid #ccc; min-height: 50px;"></div>
+    
+    <script>
+        async function testUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const result = document.getElementById('result');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                result.innerHTML = '<div style="color: red;">Please select a file first</div>';
+                return;
+            }
+            
+            console.log('Testing upload with:', file.name, file.type, file.size);
+            result.innerHTML = '<div style="color: blue;">Uploading...</div>';
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                console.log('Sending request to /api/upload...');
+                const response = await axios.post('/api/upload', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                
+                console.log('Upload response:', response.data);
+                
+                if (response.data.success) {
+                    result.innerHTML = `
+                        <div style="color: green;">
+                            <strong>SUCCESS!</strong><br>
+                            File: ${file.name}<br>
+                            Type: ${file.type}<br>
+                            Size: ${file.size} bytes<br>
+                            URL: ${response.data.url}<br>
+                            <img src="${response.data.url}" style="max-width: 200px; margin-top: 10px;">
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = `<div style="color: red;">Upload failed: ${response.data.error}</div>`;
+                }
+                
+            } catch (error) {
+                console.error('Upload error:', error);
+                result.innerHTML = `<div style="color: red;">Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

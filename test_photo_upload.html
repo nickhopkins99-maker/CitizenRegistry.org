@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Upload Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>Photo Upload Test</h1>
+    
+    <div id="status"></div>
+    
+    <script>
+        async function testPhotoUpload() {
+            const status = document.getElementById('status');
+            
+            try {
+                // 1. Login first
+                status.innerHTML += '<p>1. Logging in...</p>';
+                const loginResponse = await axios.post('/api/login', { password: 'Family' });
+                status.innerHTML += `<p>✓ Login successful: ${loginResponse.data.message}</p>`;
+                
+                // 2. Get stores list
+                status.innerHTML += '<p>2. Fetching stores...</p>';
+                const storesResponse = await axios.get('/api/stores');
+                status.innerHTML += `<p>✓ Found ${storesResponse.data.length} stores</p>`;
+                
+                if (storesResponse.data.length > 0) {
+                    const store = storesResponse.data[0];
+                    status.innerHTML += `<p>Store: ${store.name}</p>`;
+                    status.innerHTML += `<p>Current logo: ${store.logo_url ? 'Has custom photo' : 'No photo (diamond icon)'}</p>`;
+                    
+                    // 3. Test upload API
+                    status.innerHTML += '<p>3. Testing upload API...</p>';
+                    const formData = new FormData();
+                    
+                    // Create a simple test image (1x1 pixel PNG)
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 1;
+                    canvas.height = 1;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#ff0000';
+                    ctx.fillRect(0, 0, 1, 1);
+                    
+                    canvas.toBlob(async (blob) => {
+                        formData.append('file', blob, 'test.png');
+                        
+                        const uploadResponse = await axios.post('/api/upload', formData, {
+                            headers: { 'Content-Type': 'multipart/form-data' }
+                        });
+                        
+                        status.innerHTML += `<p>✓ Upload successful: ${uploadResponse.data.url.substring(0, 50)}...</p>`;
+                        
+                        // 4. Update store with new photo
+                        status.innerHTML += '<p>4. Updating store profile...</p>';
+                        const updateResponse = await axios.put(`/api/stores/${store.id}`, {
+                            logo_url: uploadResponse.data.url
+                        });
+                        
+                        status.innerHTML += `<p>✓ Store updated successfully</p>`;
+                        
+                        // 5. Verify the update
+                        status.innerHTML += '<p>5. Verifying update...</p>';
+                        const updatedStoresResponse = await axios.get('/api/stores');
+                        const updatedStore = updatedStoresResponse.data.find(s => s.id === store.id);
+                        
+                        if (updatedStore && updatedStore.logo_url) {
+                            status.innerHTML += `<p>✓ SUCCESS: Store now has a custom photo!</p>`;
+                            status.innerHTML += `<p>Photo URL: ${updatedStore.logo_url.substring(0, 50)}...</p>`;
+                        } else {
+                            status.innerHTML += `<p>❌ FAILED: Store still doesn't have a photo</p>`;
+                        }
+                        
+                    }, 'image/png');
+                }
+                
+            } catch (error) {
+                status.innerHTML += `<p>❌ ERROR: ${error.message}</p>`;
+                console.error('Test failed:', error);
+            }
+        }
+        
+        // Run the test when page loads
+        document.addEventListener('DOMContentLoaded', testPhotoUpload);
+    </script>
+</body>
+</html>

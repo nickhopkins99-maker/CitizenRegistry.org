@@ -18,15 +18,7 @@ class JewelryStoreApp {
       this.showAddStoreForm()
     })
 
-    // Bulk import stores button
-    document.getElementById('bulkImportStoresBtn').addEventListener('click', () => {
-      this.showStoresBulkImportForm()
-    })
 
-    // Site data button
-    document.getElementById('siteDataBtn').addEventListener('click', () => {
-      this.showSiteDataModal()
-    })
 
     // Filter and sort controls
     document.getElementById('storeFilter').addEventListener('change', () => {
@@ -50,9 +42,7 @@ class JewelryStoreApp {
       this.closeModal('staffModal')
     })
 
-    document.getElementById('closeSiteDataModal').addEventListener('click', () => {
-      this.closeModal('siteDataModal')
-    })
+
 
     // Today's Visit button
     document.getElementById('todaysVisitBtn').addEventListener('click', () => {
