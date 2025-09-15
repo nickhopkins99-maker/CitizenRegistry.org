@@ -11,9 +11,13 @@ A mobile-optimized web application for managing jewelry store accounts and staff
 
 ## 🌐 URLs
 
+- **Production**: https://jewelry-store-profiles.pages.dev
+- **Latest Deployment**: https://4814045d.jewelry-store-profiles.pages.dev
 - **Development**: https://3000-i9tr7bwgymrnqynzw6wlq-6532622b.e2b.dev
-- **API Health**: https://3000-i9tr7bwgymrnqynzw6wlq-6532622b.e2b.dev/api/stores
-- **GitHub**: [To be configured when deploying to production]
+- **API Endpoints**: 
+  - Stores: https://jewelry-store-profiles.pages.dev/api/stores
+  - Staff: https://jewelry-store-profiles.pages.dev/api/staff
+  - Visits: https://jewelry-store-profiles.pages.dev/api/visits
 
 ## ✨ Current Features
 
@@ -182,18 +186,21 @@ Name | Role | Year Started | Certifications | Languages | Specialties | Educatio
 
 ## 🚀 Deployment Status
 
-- **Platform**: Cloudflare Pages (ready to deploy)
-- **Status**: ✅ Development Active
-- **Local Database**: ✅ Initialized with sample data
-- **API Endpoints**: ✅ All functional
-- **Image Upload**: ✅ Configured for R2 storage
+- **Platform**: ✅ **Cloudflare Pages - DEPLOYED**
+- **Status**: ✅ **Production Active**
+- **Production URL**: https://jewelry-store-profiles.pages.dev
+- **Local Database**: ⚠️ Database bindings pending (needs D1 setup in production)
+- **API Endpoints**: ✅ All functional (graceful degradation without DB)
+- **Image Upload**: ⚠️ R2 storage pending configuration
 - **Excel Import**: ✅ Both file upload and copy-paste working
 - **Mobile Optimization**: ✅ Fully responsive
+- **Today's Visit Feature**: ✅ **Fully implemented with modal and form**
 - **Latest Features**: 
+  - 📅 **Today's Visit** - Record visits to accounts with date/time tracking
   - 🔍 Non-Prospects Filter for comprehensive account management
   - ♿ Full WCAG 2.1 AA accessibility compliance with keyboard navigation
   - 🎨 Pantone color scheme with warm amber tones and blue accents
-- **Last Updated**: 2025-09-14
+- **Last Updated**: 2025-09-15
 
 ## 📋 API Endpoints
 

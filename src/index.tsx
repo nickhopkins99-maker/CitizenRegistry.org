@@ -4,8 +4,8 @@ import { serveStatic } from 'hono/cloudflare-workers'
 import { renderer } from './renderer'
 
 type Bindings = {
-  DB: D1Database
-  IMAGES: R2Bucket
+  DB?: D1Database
+  IMAGES?: R2Bucket
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -72,6 +72,20 @@ const initDB = async (db: D1Database) => {
       FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE
     )
   `).run()
+
+  // Create visits table
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS visits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      store_id INTEGER NOT NULL,
+      visit_date DATE NOT NULL,
+      visit_time TIME,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE
+    )
+  `).run()
 }
 
 // API Routes
@@ -79,6 +93,15 @@ const initDB = async (db: D1Database) => {
 // Get all stores
 app.get('/api/stores', async (c) => {
   const { env } = c
+  
+  if (!env.DB) {
+    return c.json({ 
+      error: 'Database not available', 
+      message: 'Database configuration required for full functionality',
+      results: []
+    })
+  }
+  
   await initDB(env.DB)
   
   const stores = await env.DB.prepare(`
@@ -113,9 +136,32 @@ app.get('/api/stores/:id', async (c) => {
   const storeId = c.req.param('id')
   await initDB(env.DB)
   
-  const store = await env.DB.prepare('SELECT * FROM stores WHERE id = ?').bind(storeId).first()
-  if (!store) {
+  // Get store with custom sections
+  const storeResult = await env.DB.prepare(`
+    SELECT s.*, 
+    GROUP_CONCAT(scs.section_name || '|||' || COALESCE(scs.section_value, '') || '|||' || scs.section_order, '###') as custom_sections
+    FROM stores s
+    LEFT JOIN store_custom_sections scs ON s.id = scs.store_id
+    WHERE s.id = ?
+    GROUP BY s.id
+  `).bind(storeId).first()
+  
+  if (!storeResult) {
     return c.json({ error: 'Store not found' }, 404)
+  }
+  
+  // Parse store custom sections
+  const store = {
+    ...storeResult,
+    custom_sections: storeResult.custom_sections 
+      ? storeResult.custom_sections.split('###')
+          .filter((s: string) => s.trim())
+          .map((s: string) => {
+            const [name, value, order] = s.split('|||')
+            return { section_name: name, section_value: value, section_order: parseInt(order) }
+          })
+          .sort((a: any, b: any) => a.section_order - b.section_order)
+      : []
   }
   
   const staff = await env.DB.prepare(`
@@ -594,67 +640,439 @@ app.get('/api/images/:fileName', async (c) => {
   })
 })
 
+// Site Data API Endpoints
+
+// Get site statistics
+app.get('/api/site-data/stats', async (c) => {
+  const { env } = c
+  await initDB(env.DB)
+  
+  try {
+    // Get total stores
+    const storesResult = await env.DB.prepare('SELECT COUNT(*) as count FROM stores').first()
+    const totalStores = storesResult?.count || 0
+    
+    // Get total staff
+    const staffResult = await env.DB.prepare('SELECT COUNT(*) as count FROM staff').first()
+    const totalStaff = staffResult?.count || 0
+    
+    // Get total unique custom fields (both store and staff)
+    const storeFieldsResult = await env.DB.prepare('SELECT COUNT(DISTINCT section_name) as count FROM store_custom_sections').first()
+    const staffFieldsResult = await env.DB.prepare('SELECT COUNT(DISTINCT section_name) as count FROM staff_custom_sections').first()
+    const totalCustomFields = (storeFieldsResult?.count || 0) + (staffFieldsResult?.count || 0)
+    
+    return c.json({
+      totalStores,
+      totalStaff,
+      totalCustomFields
+    })
+  } catch (error) {
+    console.error('Error getting site stats:', error)
+    return c.json({ error: 'Failed to get statistics' }, 500)
+  }
+})
+
+// Get recent activity
+app.get('/api/site-data/activity', async (c) => {
+  const { env } = c
+  await initDB(env.DB)
+  
+  try {
+    // Get recent stores
+    const recentStores = await env.DB.prepare(`
+      SELECT name, created_at FROM stores 
+      ORDER BY created_at DESC LIMIT 5
+    `).all()
+    
+    // Get recent staff
+    const recentStaff = await env.DB.prepare(`
+      SELECT s.name, s.created_at, st.name as store_name 
+      FROM staff s
+      JOIN stores st ON s.store_id = st.id
+      ORDER BY s.created_at DESC LIMIT 5
+    `).all()
+    
+    const activities = []
+    
+    // Add store activities
+    recentStores.results.forEach(store => {
+      activities.push({
+        title: 'New Store Added',
+        description: `${store.name}`,
+        timestamp: new Date(store.created_at).toLocaleDateString(),
+        icon: 'fa-store',
+        color: 'blue'
+      })
+    })
+    
+    // Add staff activities
+    recentStaff.results.forEach(staff => {
+      activities.push({
+        title: 'New Staff Member',
+        description: `${staff.name} at ${staff.store_name}`,
+        timestamp: new Date(staff.created_at).toLocaleDateString(),
+        icon: 'fa-user-plus',
+        color: 'green'
+      })
+    })
+    
+    // Sort by most recent
+    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    
+    return c.json(activities.slice(0, 10))
+  } catch (error) {
+    console.error('Error getting recent activity:', error)
+    return c.json([])
+  }
+})
+
+// Export data endpoints
+app.get('/api/site-data/export/stores', async (c) => {
+  const { env } = c
+  await initDB(env.DB)
+  
+  try {
+    // Get all stores with custom sections
+    const stores = await env.DB.prepare(`
+      SELECT s.*, 
+      GROUP_CONCAT(scs.section_name || '|||' || COALESCE(scs.section_value, '') || '|||' || scs.section_order, '###') as custom_sections
+      FROM stores s
+      LEFT JOIN store_custom_sections scs ON s.id = scs.store_id
+      GROUP BY s.id
+      ORDER BY s.name
+    `).all()
+    
+    // Transform data for export
+    const exportData = stores.results.map(store => {
+      const baseData = {
+        'Store ID': store.id,
+        'Store Name': store.name,
+        'Description': store.description || '',
+        'Logo URL': store.logo_url || '',
+        'Created Date': store.created_at,
+        'Updated Date': store.updated_at
+      }
+      
+      // Add custom sections as columns
+      if (store.custom_sections) {
+        const sections = store.custom_sections.split('###')
+          .filter(s => s.trim())
+          .map(s => {
+            const [name, value] = s.split('|||')
+            return { name, value }
+          })
+        
+        sections.forEach(section => {
+          baseData[section.name] = section.value
+        })
+      }
+      
+      return baseData
+    })
+    
+    // Create Excel-like CSV data (simplified for now)
+    const headers = Object.keys(exportData[0] || {})
+    let csvContent = headers.join(',') + '\\n'
+    
+    exportData.forEach(row => {
+      const values = headers.map(header => {
+        const value = row[header] || ''
+        return `"${String(value).replace(/"/g, '""')}"`
+      })
+      csvContent += values.join(',') + '\\n'
+    })
+    
+    return new Response(csvContent, {
+      headers: {
+        'Content-Type': 'application/vnd.ms-excel',
+        'Content-Disposition': 'attachment; filename="stores_export.csv"'
+      }
+    })
+  } catch (error) {
+    console.error('Error exporting stores:', error)
+    return c.json({ error: 'Failed to export stores data' }, 500)
+  }
+})
+
+app.get('/api/site-data/export/staff', async (c) => {
+  const { env } = c
+  await initDB(env.DB)
+  
+  try {
+    // Get all staff with store names and custom sections
+    const staff = await env.DB.prepare(`
+      SELECT s.*, st.name as store_name,
+      GROUP_CONCAT(scs.section_name || '|||' || COALESCE(scs.section_value, '') || '|||' || scs.section_order, '###') as custom_sections
+      FROM staff s
+      JOIN stores st ON s.store_id = st.id
+      LEFT JOIN staff_custom_sections scs ON s.id = scs.staff_id
+      GROUP BY s.id
+      ORDER BY st.name, s.name
+    `).all()
+    
+    // Transform data for export
+    const exportData = staff.results.map(member => {
+      const baseData = {
+        'Staff ID': member.id,
+        'Store Name': member.store_name,
+        'Staff Name': member.name,
+        'Role': member.role || '',
+        'Year Started': member.year_started || '',
+        'Profile Picture URL': member.profile_picture_url || '',
+        'Created Date': member.created_at,
+        'Updated Date': member.updated_at
+      }
+      
+      // Add custom sections as columns
+      if (member.custom_sections) {
+        const sections = member.custom_sections.split('###')
+          .filter(s => s.trim())
+          .map(s => {
+            const [name, value] = s.split('|||')
+            return { name, value }
+          })
+        
+        sections.forEach(section => {
+          baseData[section.name] = section.value
+        })
+      }
+      
+      return baseData
+    })
+    
+    // Create CSV data
+    const headers = Object.keys(exportData[0] || {})
+    let csvContent = headers.join(',') + '\\n'
+    
+    exportData.forEach(row => {
+      const values = headers.map(header => {
+        const value = row[header] || ''
+        return `"${String(value).replace(/"/g, '""')}"`
+      })
+      csvContent += values.join(',') + '\\n'
+    })
+    
+    return new Response(csvContent, {
+      headers: {
+        'Content-Type': 'application/vnd.ms-excel',
+        'Content-Disposition': 'attachment; filename="staff_export.csv"'
+      }
+    })
+  } catch (error) {
+    console.error('Error exporting staff:', error)
+    return c.json({ error: 'Failed to export staff data' }, 500)
+  }
+})
+
+// Visit Management API Endpoints
+
+// Create a new visit record
+app.post('/api/visits', async (c) => {
+  const { env } = c
+  const { store_id, visit_date, visit_time, notes } = await c.req.json()
+  await initDB(env.DB)
+  
+  // Validate required fields
+  if (!store_id || !visit_date) {
+    return c.json({ error: 'Store ID and visit date are required' }, 400)
+  }
+  
+  // Verify store exists
+  const store = await env.DB.prepare('SELECT id FROM stores WHERE id = ?').bind(store_id).first()
+  if (!store) {
+    return c.json({ error: 'Store not found' }, 404)
+  }
+  
+  try {
+    const result = await env.DB.prepare(`
+      INSERT INTO visits (store_id, visit_date, visit_time, notes) 
+      VALUES (?, ?, ?, ?)
+    `).bind(store_id, visit_date, visit_time, notes).run()
+    
+    return c.json({ 
+      id: result.meta.last_row_id, 
+      store_id, 
+      visit_date, 
+      visit_time, 
+      notes,
+      message: 'Visit recorded successfully'
+    })
+  } catch (error) {
+    console.error('Error creating visit:', error)
+    return c.json({ error: 'Failed to create visit record' }, 500)
+  }
+})
+
+// Get visits for a specific store
+app.get('/api/stores/:storeId/visits', async (c) => {
+  const { env } = c
+  const storeId = c.req.param('storeId')
+  await initDB(env.DB)
+  
+  try {
+    const visits = await env.DB.prepare(`
+      SELECT v.*, s.name as store_name
+      FROM visits v
+      JOIN stores s ON v.store_id = s.id
+      WHERE v.store_id = ?
+      ORDER BY v.visit_date DESC, v.created_at DESC
+    `).bind(storeId).all()
+    
+    return c.json(visits.results || [])
+  } catch (error) {
+    console.error('Error fetching visits:', error)
+    return c.json({ error: 'Failed to fetch visits' }, 500)
+  }
+})
+
+// Get all recent visits
+app.get('/api/visits/recent', async (c) => {
+  const { env } = c
+  await initDB(env.DB)
+  
+  try {
+    const visits = await env.DB.prepare(`
+      SELECT v.*, s.name as store_name
+      FROM visits v
+      JOIN stores s ON v.store_id = s.id
+      ORDER BY v.visit_date DESC, v.created_at DESC
+      LIMIT 50
+    `).all()
+    
+    return c.json(visits.results || [])
+  } catch (error) {
+    console.error('Error fetching recent visits:', error)
+    return c.json({ error: 'Failed to fetch recent visits' }, 500)
+  }
+})
+
+// Update a visit record
+app.put('/api/visits/:id', async (c) => {
+  const { env } = c
+  const visitId = c.req.param('id')
+  const { visit_date, visit_time, notes } = await c.req.json()
+  await initDB(env.DB)
+  
+  try {
+    await env.DB.prepare(`
+      UPDATE visits 
+      SET visit_date = ?, visit_time = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).bind(visit_date, visit_time, notes, visitId).run()
+    
+    return c.json({ success: true, message: 'Visit updated successfully' })
+  } catch (error) {
+    console.error('Error updating visit:', error)
+    return c.json({ error: 'Failed to update visit' }, 500)
+  }
+})
+
+// Delete a visit record
+app.delete('/api/visits/:id', async (c) => {
+  const { env } = c
+  const visitId = c.req.param('id')
+  await initDB(env.DB)
+  
+  try {
+    await env.DB.prepare('DELETE FROM visits WHERE id = ?').bind(visitId).run()
+    return c.json({ success: true, message: 'Visit deleted successfully' })
+  } catch (error) {
+    console.error('Error deleting visit:', error)
+    return c.json({ error: 'Failed to delete visit' }, 500)
+  }
+})
+
 // Main application page
 app.get('/', (c) => {
   return c.render(
     <div>
-      <div className="min-h-screen bg-gray-50">
+      <a href="#main-content" className="skip-link">Skip to main content</a>
+      <div className="min-h-screen bg-amber-50">
         <div className="container mx-auto px-4 py-6 max-w-4xl">
-          <header className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              <i className="fas fa-gem text-purple-600 mr-3"></i>
-              Jewelry Store Profiles
-            </h1>
-            <p className="text-gray-600">Manage your jewelry store accounts and staff profiles</p>
+          <header className="flex justify-between items-start mb-8">
+            <div className="text-center flex-1">
+              <h1 className="text-3xl font-bold text-amber-900 mb-2">
+                <i className="fas fa-gem text-blue-600 mr-3" aria-label="Jewelry store management system icon"></i>
+                Jewelry Store Profiles
+              </h1>
+              <p className="text-amber-700">Manage your jewelry store accounts and staff profiles</p>
+            </div>
+            <div className="flex-shrink-0 ml-4 flex space-x-3">
+              <button 
+                id="todaysVisitBtn" 
+                className="bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 focus:outline-none text-white px-4 py-2 rounded-lg transition duration-200 flex items-center text-sm shadow-md"
+                aria-label="Record today's visit to an account"
+                tabindex="0"
+              >
+                <i className="fas fa-calendar-plus mr-2" aria-hidden="true"></i>
+                Today's Visit
+              </button>
+              <button 
+                id="siteDataBtn" 
+                className="bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 focus:outline-none text-white px-4 py-2 rounded-lg transition duration-200 flex items-center text-sm shadow-md"
+                aria-label="Access site data management and statistics"
+                tabindex="0"
+              >
+                <i className="fas fa-database mr-2" aria-hidden="true"></i>
+                Site Data
+              </button>
+            </div>
           </header>
 
           {/* Store Management Section */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <main id="main-content" className="bg-amber-25 border border-amber-200 rounded-lg shadow-md p-6 mb-6">
             <div className="flex flex-col space-y-4 mb-4">
               <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-gray-800">
-                  <i className="fas fa-store text-blue-600 mr-2"></i>
+                <h2 className="text-xl font-semibold text-amber-900">
+                  <i className="fas fa-store text-blue-600 mr-2" aria-label="Stores section icon"></i>
                   Jewelry Stores
                 </h2>
-                <div className="flex space-x-2">
+                <div className="flex space-x-2" role="group" aria-label="Store management actions">
                   <button 
                     id="bulkImportStoresBtn" 
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg transition duration-200 flex items-center text-sm"
+                    className="bg-amber-600 hover:bg-amber-700 focus:ring-4 focus:ring-amber-300 focus:outline-none text-white px-3 py-2 rounded-lg transition duration-200 flex items-center text-sm"
+                    aria-label="Import multiple stores from Excel file"
+                    tabindex="0"
                   >
-                    <i className="fas fa-file-excel mr-2"></i>
+                    <i className="fas fa-file-excel mr-2" aria-hidden="true"></i>
                     Import Stores
                   </button>
                   <button 
                     id="addStoreBtn" 
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200 flex items-center"
+                    className="bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 focus:outline-none text-white px-4 py-2 rounded-lg transition duration-200 flex items-center"
+                    aria-label="Add a new jewelry store"
+                    tabindex="0"
                   >
-                    <i className="fas fa-plus mr-2"></i>
+                    <i className="fas fa-plus mr-2" aria-hidden="true"></i>
                     Add Store
                   </button>
                 </div>
               </div>
               
               {/* Filter and Sort Controls */}
-              <div className="flex flex-wrap items-center gap-4 p-4 bg-gray-50 rounded-lg border">
+              <div className="flex flex-wrap items-center gap-4 p-4 bg-amber-100 rounded-lg border border-amber-200" role="region" aria-label="Filter and sort controls">
                 <div className="flex items-center space-x-2">
-                  <i className="fas fa-filter text-gray-600"></i>
-                  <label htmlFor="storeFilter" className="text-sm font-medium text-gray-700">Filter:</label>
+                  <i className="fas fa-filter text-amber-700" aria-hidden="true"></i>
+                  <label htmlFor="storeFilter" className="text-sm font-medium text-amber-900">Filter:</label>
                   <select 
                     id="storeFilter" 
-                    className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="px-3 py-1 border border-amber-300 rounded-md text-sm focus:ring-4 focus:ring-blue-300 focus:border-blue-500 focus:outline-none bg-white text-amber-900"
+                    aria-describedby="filterStatus"
                   >
                     <option value="all">All Accounts</option>
                     <option value="prospect">Prospects Only</option>
+                    <option value="non-prospect">Non-Prospects</option>
                     <option value="active">Active Only</option>
                   </select>
                 </div>
                 
                 <div className="flex items-center space-x-2">
-                  <i className="fas fa-sort text-gray-600"></i>
-                  <label htmlFor="storeSort" className="text-sm font-medium text-gray-700">Sort:</label>
+                  <i className="fas fa-sort text-amber-700" aria-hidden="true"></i>
+                  <label htmlFor="storeSort" className="text-sm font-medium text-amber-900">Sort:</label>
                   <select 
                     id="storeSort" 
-                    className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="px-3 py-1 border border-amber-300 rounded-md text-sm focus:ring-4 focus:ring-blue-300 focus:border-blue-500 focus:outline-none bg-white text-amber-900"
+                    aria-describedby="filterStatus"
                   >
                     <option value="name-asc">Name (A-Z)</option>
                     <option value="name-desc">Name (Z-A)</option>
@@ -663,14 +1081,16 @@ app.get('/', (c) => {
                   </select>
                 </div>
                 
-                <div id="filterStatus" className="text-sm text-gray-600 italic">
+                <div id="filterStatus" className="text-sm text-amber-800 italic" aria-live="polite">
                   Showing all accounts
                 </div>
                 
                 <button 
                   id="clearFilters" 
-                  className="ml-auto text-sm text-blue-600 hover:text-blue-800 underline"
+                  className="ml-auto text-sm text-blue-600 hover:text-blue-800 focus:ring-4 focus:ring-blue-300 focus:outline-none underline px-2 py-1 rounded"
                   style={{display: 'none'}}
+                  aria-label="Clear all applied filters"
+                  tabindex="0"
                 >
                   Clear Filters
                 </button>
@@ -678,15 +1098,16 @@ app.get('/', (c) => {
             </div>
             
             {/* Bulk Import Info */}
-            <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg" role="region" aria-label="Import instructions">
               <div className="flex items-start space-x-3">
-                <i className="fas fa-lightbulb text-purple-600 mt-1"></i>
+                <i className="fas fa-lightbulb text-blue-600 mt-1" aria-label="Tip icon"></i>
                 <div className="flex-1">
-                  <h4 className="font-medium text-purple-800 mb-1">Quick Setup: Import Multiple Stores</h4>
-                  <p className="text-sm text-purple-700 mb-2">Import jewelry stores from Excel or copy-paste data directly from spreadsheets.</p>
+                  <h4 className="font-medium text-blue-800 mb-1">Quick Setup: Import Multiple Stores</h4>
+                  <p className="text-sm text-blue-700 mb-2">Import jewelry stores from Excel or copy-paste data directly from spreadsheets.</p>
                   <a href="/api/excel-template/stores" target="_blank" 
-                     className="inline-flex items-center text-sm text-purple-600 hover:text-purple-800 font-medium">
-                    <i className="fas fa-download mr-1"></i>Download Stores Template
+                     className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 focus:ring-4 focus:ring-blue-300 focus:outline-none font-medium px-2 py-1 rounded"
+                     aria-label="Download Excel template for importing stores">
+                    <i className="fas fa-download mr-1" aria-hidden="true"></i>Download Stores Template
                   </a>
                 </div>
               </div>
@@ -694,40 +1115,91 @@ app.get('/', (c) => {
             <div id="storesList" className="space-y-4">
               {/* Stores will be loaded here */}
             </div>
-          </div>
+          </main>
 
-          {/* Store Detail Modal */}
-          <div id="storeModal" className="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
-            <div className="flex items-center justify-center min-h-screen p-4">
-              <div className="bg-white rounded-lg w-full max-w-2xl max-h-screen overflow-y-auto">
-                <div className="p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-semibold">Store Details</h3>
-                    <button id="closeStoreModal" className="text-gray-500 hover:text-gray-700">
-                      <i className="fas fa-times"></i>
-                    </button>
-                  </div>
-                  <div id="storeModalContent">
-                    {/* Store content will be loaded here */}
-                  </div>
+          {/* Store Detail Modal - Full Screen */}
+          <div id="storeModal" className="fixed inset-0 bg-amber-25 hidden z-50" role="dialog" aria-modal="true" aria-labelledby="storeModalTitle">
+            <div className="h-full flex flex-col">
+              {/* Header */}
+              <div className="bg-amber-100 border-b border-amber-200 px-6 py-4">
+                <div className="flex justify-between items-center">
+                  <h3 id="storeModalTitle" className="text-2xl font-semibold text-amber-900">Account Profile</h3>
+                  <button id="closeStoreModal" className="text-amber-700 hover:text-amber-900 focus:ring-4 focus:ring-blue-300 focus:outline-none p-2 rounded"
+                          aria-label="Close account profile modal">
+                    <i className="fas fa-times text-xl" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+              
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto bg-amber-50">
+                <div id="storeModalContent" className="p-6">
+                  {/* Store content will be loaded here */}
                 </div>
               </div>
             </div>
           </div>
 
           {/* Staff Detail Modal */}
-          <div id="staffModal" className="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+          <div id="staffModal" className="fixed inset-0 bg-black bg-opacity-50 hidden z-50" role="dialog" aria-modal="true" aria-labelledby="staffModalTitle">
             <div className="flex items-center justify-center min-h-screen p-4">
-              <div className="bg-white rounded-lg w-full max-w-2xl max-h-screen overflow-y-auto">
+              <div className="bg-amber-25 border border-amber-200 rounded-lg w-full max-w-2xl max-h-screen overflow-y-auto">
                 <div className="p-6">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-semibold">Staff Profile</h3>
-                    <button id="closeStaffModal" className="text-gray-500 hover:text-gray-700">
-                      <i className="fas fa-times"></i>
+                    <h3 id="staffModalTitle" className="text-xl font-semibold text-amber-900">Staff Profile</h3>
+                    <button id="closeStaffModal" className="text-amber-700 hover:text-amber-900 focus:ring-4 focus:ring-blue-300 focus:outline-none p-2 rounded"
+                            aria-label="Close staff profile modal">
+                      <i className="fas fa-times" aria-hidden="true"></i>
                     </button>
                   </div>
                   <div id="staffModalContent">
                     {/* Staff content will be loaded here */}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Site Data Modal */}
+          <div id="siteDataModal" className="fixed inset-0 bg-black bg-opacity-50 hidden z-50" role="dialog" aria-modal="true" aria-labelledby="siteDataModalTitle">
+            <div className="flex items-center justify-center min-h-screen p-4">
+              <div className="bg-amber-25 border border-amber-200 rounded-lg w-full max-w-4xl max-h-screen overflow-y-auto">
+                <div className="p-6">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 id="siteDataModalTitle" className="text-2xl font-semibold text-amber-900">
+                      <i className="fas fa-database text-blue-600 mr-2" aria-label="Database management icon"></i>
+                      Site Data Management
+                    </h3>
+                    <button id="closeSiteDataModal" className="text-amber-700 hover:text-amber-900 focus:ring-4 focus:ring-blue-300 focus:outline-none p-2 rounded"
+                            aria-label="Close site data management modal">
+                      <i className="fas fa-times text-xl" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                  <div id="siteDataContent">
+                    {/* Site data content will be loaded here */}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Today's Visit Modal */}
+          <div id="visitModal" className="fixed inset-0 bg-black bg-opacity-50 hidden z-50" role="dialog" aria-modal="true" aria-labelledby="visitModalTitle">
+            <div className="flex items-center justify-center min-h-screen p-4">
+              <div className="bg-white rounded-lg w-full max-w-2xl max-h-screen overflow-y-auto shadow-2xl">
+                <div className="p-6">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 id="visitModalTitle" className="text-2xl font-semibold text-gray-900">
+                      <i className="fas fa-calendar-plus text-green-600 mr-2" aria-hidden="true"></i>
+                      Today's Visit
+                    </h3>
+                    <button id="closeVisitModal" className="text-gray-500 hover:text-gray-700 focus:ring-4 focus:ring-blue-300 focus:outline-none p-2 rounded"
+                            aria-label="Close visit modal">
+                      <i className="fas fa-times text-xl" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                  <div id="visitModalContent">
+                    {/* Visit content will be loaded here */}
                   </div>
                 </div>
               </div>

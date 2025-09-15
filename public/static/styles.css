@@ -1,21 +1,41 @@
-/* Mobile-Optimized Jewelry Store App Styles */
+/* Mobile-Optimized Jewelry Store App Styles with Pantone Colors & Accessibility */
 
-/* Custom scrollbar for better mobile experience */
+/* Pantone Color Variables */
+:root {
+  --pantone-amber-50: #fffbeb;
+  --pantone-amber-100: #fef3c7;
+  --pantone-amber-200: #fde68a;
+  --pantone-amber-300: #fcd34d;
+  --pantone-amber-600: #d97706;
+  --pantone-amber-700: #b45309;
+  --pantone-amber-800: #92400e;
+  --pantone-amber-900: #78350f;
+  --pantone-blue-600: #2563eb;
+  --pantone-blue-700: #1d4ed8;
+  --pantone-blue-300: #93c5fd;
+}
+
+/* Custom Pantone Color Classes */
+.bg-amber-25 { background-color: #fffef7; }
+.text-amber-25 { color: #fffef7; }
+.border-amber-25 { border-color: #fffef7; }
+
+/* Custom scrollbar with Pantone colors */
 ::-webkit-scrollbar {
   width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--pantone-amber-50);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e0;
+  background: var(--pantone-amber-300);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a0aec0;
+  background: var(--pantone-amber-600);
 }
 
 /* Modal optimizations for mobile */
@@ -50,27 +70,80 @@
   transition: all 0.2s ease-in-out;
 }
 
-/* Custom button hover states */
+/* Pantone-colored button styles with accessibility */
 .btn-primary {
-  @apply bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200;
+  background-color: var(--pantone-blue-600);
+  color: white;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease-in-out;
+  border: 2px solid var(--pantone-blue-600);
+  min-height: 44px; /* Touch target accessibility */
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background-color: var(--pantone-blue-700);
+  border-color: var(--pantone-blue-700);
 }
 
 .btn-secondary {
-  @apply bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 px-4 rounded-lg transition-all duration-200;
+  background-color: var(--pantone-amber-300);
+  color: var(--pantone-amber-900);
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease-in-out;
+  border: 2px solid var(--pantone-amber-300);
+  min-height: 44px; /* Touch target accessibility */
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background-color: var(--pantone-amber-600);
+  border-color: var(--pantone-amber-600);
+  color: white;
 }
 
 .btn-success {
-  @apply bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200;
+  background-color: #059669; /* Emerald green */
+  color: white;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease-in-out;
+  border: 2px solid #059669;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.btn-success:hover {
+  background-color: #047857;
+  border-color: #047857;
 }
 
 .btn-danger {
-  @apply bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200;
+  background-color: #dc2626; /* Red */
+  color: white;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease-in-out;
+  border: 2px solid #dc2626;
+  min-height: 44px;
+  cursor: pointer;
 }
 
-/* Loading animation */
+.btn-danger:hover {
+  background-color: #b91c1c;
+  border-color: #b91c1c;
+}
+
+/* Loading animation with Pantone colors */
 .loading-spinner {
-  border: 4px solid #f3f4f6;
-  border-top: 4px solid #3b82f6;
+  border: 4px solid var(--pantone-amber-100);
+  border-top: 4px solid var(--pantone-blue-600);
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -82,38 +155,28 @@
   100% { transform: rotate(360deg); }
 }
 
-/* Image upload preview */
+/* Image upload preview with Pantone colors */
 .image-preview {
   max-width: 200px;
   max-height: 200px;
   object-fit: cover;
   border-radius: 8px;
-  border: 2px dashed #d1d5db;
+  border: 2px dashed var(--pantone-amber-300);
   padding: 4px;
+  background-color: var(--pantone-amber-50);
 }
 
-/* Touch-friendly tap highlights */
-.tap-highlight {
-  -webkit-tap-highlight-color: rgba(59, 130, 246, 0.3);
-}
-
-/* Improved focus states for accessibility */
-input:focus, textarea:focus, button:focus, select:focus {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
-}
-
-/* Custom gradient backgrounds */
+/* Pantone gradient backgrounds */
 .gradient-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--pantone-blue-600) 0%, var(--pantone-amber-600) 100%);
 }
 
-.gradient-purple {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.gradient-amber {
+  background: linear-gradient(135deg, var(--pantone-amber-300) 0%, var(--pantone-amber-600) 100%);
 }
 
 .gradient-blue {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, var(--pantone-blue-600) 0%, #0ea5e9 100%);
 }
 
 /* Card hover effects */
@@ -125,6 +188,98 @@ input:focus, textarea:focus, button:focus, select:focus {
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
+
+/* Touch-friendly tap highlights with Pantone blue */
+.tap-highlight {
+  -webkit-tap-highlight-color: rgba(37, 99, 235, 0.3);
+}
+
+/* Enhanced accessibility - Focus indicators */
+*:focus {
+  outline: 4px solid var(--pantone-blue-600);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* High contrast focus for critical elements */
+button:focus, 
+a:focus, 
+[role="button"]:focus,
+[tabindex]:focus {
+  outline: 4px solid var(--pantone-blue-600);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px white, 0 0 0 6px var(--pantone-blue-600);
+}
+
+/* Form element focus states */
+input:focus, 
+textarea:focus, 
+select:focus {
+  outline: 4px solid var(--pantone-blue-600);
+  outline-offset: 2px;
+  border-color: var(--pantone-blue-600);
+  box-shadow: 0 0 0 4px var(--pantone-blue-300);
+}
+
+/* Skip to main content link for screen readers */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: var(--pantone-blue-600);
+  color: white;
+  padding: 8px;
+  text-decoration: none;
+  border-radius: 4px;
+  z-index: 1000;
+}
+
+.skip-link:focus {
+  top: 6px;
+}
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Keyboard navigation indicators */
+.keyboard-nav button:focus,
+.keyboard-nav [role="button"]:focus {
+  background-color: var(--pantone-blue-600) !important;
+  color: white !important;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  * {
+    border-width: 2px !important;
+  }
+  
+  button, [role="button"] {
+    border: 2px solid var(--pantone-amber-900) !important;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
 
 /* Profile picture placeholder animations */
 .profile-placeholder {

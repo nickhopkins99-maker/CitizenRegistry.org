@@ -1,22 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "jewelry-stores-app",
+  "name": "jewelry-store-profiles",
   "compatibility_date": "2025-09-14",
   "pages_build_output_dir": "./dist",
   "compatibility_flags": [
     "nodejs_compat"
-  ],
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "jewelry-stores-production",
-      "database_id": "placeholder-will-update-after-cloudflare-setup"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "IMAGES",
-      "bucket_name": "jewelry-stores-images"
-    }
   ]
 }

@@ -23,6 +23,11 @@ class JewelryStoreApp {
       this.showStoresBulkImportForm()
     })
 
+    // Site data button
+    document.getElementById('siteDataBtn').addEventListener('click', () => {
+      this.showSiteDataModal()
+    })
+
     // Filter and sort controls
     document.getElementById('storeFilter').addEventListener('change', () => {
       this.applyFiltersAndSort()
@@ -45,6 +50,19 @@ class JewelryStoreApp {
       this.closeModal('staffModal')
     })
 
+    document.getElementById('closeSiteDataModal').addEventListener('click', () => {
+      this.closeModal('siteDataModal')
+    })
+
+    // Today's Visit button
+    document.getElementById('todaysVisitBtn').addEventListener('click', () => {
+      this.showVisitModal()
+    })
+
+    document.getElementById('closeVisitModal').addEventListener('click', () => {
+      this.closeModal('visitModal')
+    })
+
     // Click outside modal to close
     document.getElementById('storeModal').addEventListener('click', (e) => {
       if (e.target.id === 'storeModal') this.closeModal('storeModal')
@@ -52,6 +70,14 @@ class JewelryStoreApp {
 
     document.getElementById('staffModal').addEventListener('click', (e) => {
       if (e.target.id === 'staffModal') this.closeModal('staffModal')
+    })
+
+    document.getElementById('siteDataModal').addEventListener('click', (e) => {
+      if (e.target.id === 'siteDataModal') this.closeModal('siteDataModal')
+    })
+
+    document.getElementById('visitModal').addEventListener('click', (e) => {
+      if (e.target.id === 'visitModal') this.closeModal('visitModal')
     })
   }
 
@@ -88,6 +114,55 @@ class JewelryStoreApp {
     return addressSection ? addressSection.section_value : null
   }
 
+  getStoreHours(store) {
+    if (!store.custom_sections || !Array.isArray(store.custom_sections)) {
+      return []
+    }
+    
+    const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+    const hours = []
+    
+    dayNames.forEach(day => {
+      const hoursSection = store.custom_sections.find(section => {
+        const sectionName = section.section_name.toLowerCase()
+        return sectionName.includes(day) && sectionName.includes('hours')
+      })
+      
+      if (hoursSection && hoursSection.section_value) {
+        hours.push({
+          day: day.charAt(0).toUpperCase() + day.slice(1),
+          hours: hoursSection.section_value
+        })
+      }
+    })
+    
+    return hours
+  }
+
+  renderCustomSections(store) {
+    if (!store.custom_sections || !Array.isArray(store.custom_sections)) {
+      return '<div class="col-span-full text-amber-600 text-center py-4">No additional details available</div>'
+    }
+    
+    // Filter out hours and address sections (they're displayed separately)
+    const excludeTerms = ['hours', 'address', 'location']
+    const filteredSections = store.custom_sections.filter(section => {
+      const sectionName = section.section_name.toLowerCase()
+      return !excludeTerms.some(term => sectionName.includes(term))
+    })
+    
+    if (filteredSections.length === 0) {
+      return '<div class="col-span-full text-amber-600 text-center py-4">No additional details available</div>'
+    }
+    
+    return filteredSections.map(section => `
+      <div class="p-3 border border-amber-200 bg-amber-50 rounded-lg">
+        <h4 class="font-semibold text-amber-900 text-sm mb-1">${section.section_name}</h4>
+        <p class="text-amber-800 text-sm">${section.section_value || 'Not specified'}</p>
+      </div>
+    `).join('')
+  }
+
   renderStores() {
     // Apply current filters and sort before rendering
     const filteredAndSortedStores = this.getFilteredAndSortedStores()
@@ -96,8 +171,8 @@ class JewelryStoreApp {
     
     if (this.stores.length === 0) {
       storesList.innerHTML = `
-        <div class="text-center text-gray-500 py-8">
-          <i class="fas fa-store text-4xl mb-4"></i>
+        <div class="text-center text-amber-600 py-8">
+          <i class="fas fa-store text-4xl mb-4" aria-hidden="true"></i>
           <p>No jewelry stores added yet. Click "Add Store" to get started!</p>
         </div>
       `
@@ -106,10 +181,12 @@ class JewelryStoreApp {
 
     if (filteredAndSortedStores.length === 0) {
       storesList.innerHTML = `
-        <div class="text-center text-gray-500 py-8">
-          <i class="fas fa-filter text-4xl mb-4"></i>
+        <div class="text-center text-amber-600 py-8">
+          <i class="fas fa-filter text-4xl mb-4" aria-hidden="true"></i>
           <p>No accounts match your current filters.</p>
-          <button onclick="app.clearFilters()" class="mt-2 text-blue-600 hover:text-blue-800 underline">
+          <button onclick="app.clearFilters()" class="mt-2 text-blue-600 hover:text-blue-800 focus:ring-4 focus:ring-blue-300 focus:outline-none underline px-2 py-1 rounded"
+                  aria-label="Clear all filters to show all accounts"
+                  tabindex="0">
             Clear filters to see all accounts
           </button>
         </div>
@@ -118,29 +195,37 @@ class JewelryStoreApp {
     }
 
     storesList.innerHTML = filteredAndSortedStores.map(store => `
-      <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition duration-200 cursor-pointer" 
-           onclick="app.openStore(${store.id})">
+      <div class="border border-amber-200 bg-amber-25 rounded-lg p-4 hover:shadow-md hover:bg-amber-50 focus-within:ring-4 focus-within:ring-blue-300 transition duration-200 cursor-pointer" 
+           onclick="app.openStore(${store.id})"
+           role="button"
+           tabindex="0"
+           aria-label="Open details for ${store.name}"
+           onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); app.openStore(${store.id}); }">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-3">
             ${store.logo_url ? 
-              `<img src="${store.logo_url}" alt="${store.name}" class="w-12 h-12 rounded-full object-cover">` : 
-              `<div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                <i class="fas fa-gem text-purple-600"></i>
+              `<img src="${store.logo_url}" alt="Logo for ${store.name}" class="w-12 h-12 rounded-full object-cover">` : 
+              `<div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center" aria-label="Default store icon">
+                <i class="fas fa-gem text-blue-600" aria-hidden="true"></i>
                </div>`
             }
             <div>
-              <h3 class="font-semibold text-gray-800">${store.name}</h3>
-              <p class="text-sm text-gray-600">${this.getStoreAddress(store) || 'No address available'}</p>
+              <h3 class="font-semibold text-amber-900">${store.name}</h3>
+              <p class="text-sm text-amber-700">${this.getStoreAddress(store) || 'No address available'}</p>
             </div>
           </div>
-          <div class="flex space-x-2">
+          <div class="flex space-x-2" role="group" aria-label="Store actions for ${store.name}">
             <button onclick="event.stopPropagation(); app.editStore(${store.id})" 
-                    class="text-blue-600 hover:text-blue-800 p-2">
-              <i class="fas fa-edit"></i>
+                    class="text-blue-600 hover:text-blue-800 focus:ring-4 focus:ring-blue-300 focus:outline-none p-2 rounded"
+                    aria-label="Edit ${store.name}"
+                    tabindex="0">
+              <i class="fas fa-edit" aria-hidden="true"></i>
             </button>
             <button onclick="event.stopPropagation(); app.deleteStore(${store.id})" 
-                    class="text-red-600 hover:text-red-800 p-2">
-              <i class="fas fa-trash"></i>
+                    class="text-red-600 hover:text-red-800 focus:ring-4 focus:ring-red-300 focus:outline-none p-2 rounded"
+                    aria-label="Delete ${store.name}"
+                    tabindex="0">
+              <i class="fas fa-trash" aria-hidden="true"></i>
             </button>
           </div>
         </div>
@@ -150,34 +235,43 @@ class JewelryStoreApp {
 
   showAddStoreForm() {
     const content = `
-      <form id="storeForm" class="space-y-4">
+      <form id="storeForm" class="space-y-4" role="form" aria-labelledby="addStoreTitle">
+        <h2 id="addStoreTitle" class="text-xl font-semibold text-amber-900 mb-4">Add New Jewelry Store</h2>
+        
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Store Name</label>
-          <input type="text" id="storeName" required 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <label for="storeName" class="block text-sm font-medium text-amber-900 mb-2">Store Name *</label>
+          <input type="text" id="storeName" name="storeName" required 
+                 class="w-full px-3 py-2 border border-amber-300 rounded-lg focus:ring-4 focus:ring-blue-300 focus:border-blue-500 focus:outline-none bg-white text-amber-900"
+                 aria-describedby="storeNameHelp">
+          <div id="storeNameHelp" class="text-xs text-amber-700 mt-1">Enter the official name of your jewelry store</div>
         </div>
         
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
-          <textarea id="storeDescription" rows="3"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+          <label for="storeDescription" class="block text-sm font-medium text-amber-900 mb-2">Description</label>
+          <textarea id="storeDescription" name="storeDescription" rows="3"
+                    class="w-full px-3 py-2 border border-amber-300 rounded-lg focus:ring-4 focus:ring-blue-300 focus:border-blue-500 focus:outline-none bg-white text-amber-900"
+                    aria-describedby="storeDescriptionHelp"></textarea>
+          <div id="storeDescriptionHelp" class="text-xs text-amber-700 mt-1">Optional: Brief description of your store</div>
         </div>
         
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Logo</label>
-          <input type="file" id="storeLogo" accept="image/*" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-          <p class="text-xs text-gray-500 mt-1">Optional: Upload a logo for your store</p>
+          <label for="storeLogo" class="block text-sm font-medium text-amber-900 mb-2">Logo</label>
+          <input type="file" id="storeLogo" name="storeLogo" accept="image/*" 
+                 class="w-full px-3 py-2 border border-amber-300 rounded-lg focus:ring-4 focus:ring-blue-300 focus:outline-none bg-white text-amber-900"
+                 aria-describedby="storeLogoHelp">
+          <div id="storeLogoHelp" class="text-xs text-amber-700 mt-1">Optional: Upload a logo image for your store</div>
         </div>
         
-        <div class="flex space-x-3 pt-4">
+        <div class="flex space-x-3 pt-4" role="group" aria-label="Form actions">
           <button type="submit" 
-                  class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition duration-200">
-            <i class="fas fa-save mr-2"></i>Save Store
+                  class="flex-1 bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 focus:outline-none text-white py-2 px-4 rounded-lg transition duration-200"
+                  aria-label="Save new store information">
+            <i class="fas fa-save mr-2" aria-hidden="true"></i>Save Store
           </button>
           <button type="button" onclick="app.closeModal('storeModal')"
-                  class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 rounded-lg transition duration-200">
-            Cancel
+                  class="flex-1 bg-amber-300 hover:bg-amber-400 focus:ring-4 focus:ring-amber-300 focus:outline-none text-amber-900 py-2 px-4 rounded-lg transition duration-200"
+                  aria-label="Cancel and close form">
+            <i class="fas fa-times mr-2" aria-hidden="true"></i>Cancel
           </button>
         </div>
       </form>
@@ -186,6 +280,132 @@ class JewelryStoreApp {
     document.getElementById('storeModalContent').innerHTML = content
     document.getElementById('storeForm').addEventListener('submit', (e) => this.handleStoreSubmit(e))
     this.showModal('storeModal')
+  }
+
+  showSiteDataModal() {
+    const content = `
+      <div class="space-y-6" role="main" aria-labelledby="siteDataModalTitle">
+        <!-- Database Overview Section -->
+        <div class="bg-blue-50 rounded-lg p-6 border border-blue-200" role="region" aria-labelledby="statsTitle">
+          <h4 id="statsTitle" class="text-lg font-semibold text-blue-800 mb-4">
+            <i class="fas fa-info-circle mr-2" aria-label="Information icon"></i>
+            Database Overview
+          </h4>
+          <div id="databaseStats" class="grid grid-cols-1 md:grid-cols-3 gap-4" role="group" aria-label="Database statistics">
+            <div class="bg-amber-25 border border-amber-200 rounded-lg p-4 shadow-sm">
+              <div class="flex items-center">
+                <div class="flex-shrink-0">
+                  <i class="fas fa-store text-blue-600 text-2xl" aria-label="Stores icon"></i>
+                </div>
+                <div class="ml-4">
+                  <p class="text-sm text-amber-800">Total Stores</p>
+                  <p id="totalStores" class="text-2xl font-semibold text-amber-900" aria-live="polite">--</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-amber-25 border border-amber-200 rounded-lg p-4 shadow-sm">
+              <div class="flex items-center">
+                <div class="flex-shrink-0">
+                  <i class="fas fa-users text-blue-600 text-2xl" aria-label="Staff icon"></i>
+                </div>
+                <div class="ml-4">
+                  <p class="text-sm text-amber-800">Total Staff</p>
+                  <p id="totalStaff" class="text-2xl font-semibold text-amber-900" aria-live="polite">--</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-amber-25 border border-amber-200 rounded-lg p-4 shadow-sm">
+              <div class="flex items-center">
+                <div class="flex-shrink-0">
+                  <i class="fas fa-tags text-blue-600 text-2xl" aria-label="Custom fields icon"></i>
+                </div>
+                <div class="ml-4">
+                  <p class="text-sm text-amber-800">Custom Fields</p>
+                  <p id="totalCustomFields" class="text-2xl font-semibold text-amber-900" aria-live="polite">--</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Data Export Section -->
+        <div class="bg-amber-100 rounded-lg p-6 border border-amber-200" role="region" aria-labelledby="exportTitle">
+          <h4 id="exportTitle" class="text-lg font-semibold text-amber-900 mb-4">
+            <i class="fas fa-download mr-2" aria-label="Download icon"></i>
+            Export Data
+          </h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4" role="group" aria-label="Data export options">
+            <button id="exportStoresBtn" class="flex items-center justify-center px-4 py-3 bg-amber-25 border border-amber-300 rounded-lg hover:bg-amber-50 focus:ring-4 focus:ring-blue-300 focus:outline-none transition duration-200"
+                    aria-label="Export all stores data to Excel file">
+              <i class="fas fa-file-excel text-blue-600 mr-3" aria-hidden="true"></i>
+              <div class="text-left">
+                <div class="font-medium text-amber-900">Export All Stores</div>
+                <div class="text-sm text-amber-800">Download stores data as Excel</div>
+              </div>
+            </button>
+            <button id="exportStaffBtn" class="flex items-center justify-center px-4 py-3 bg-amber-25 border border-amber-300 rounded-lg hover:bg-amber-50 focus:ring-4 focus:ring-blue-300 focus:outline-none transition duration-200"
+                    aria-label="Export all staff data to Excel file">
+              <i class="fas fa-file-csv text-blue-600 mr-3" aria-hidden="true"></i>
+              <div class="text-left">
+                <div class="font-medium text-amber-900">Export All Staff</div>
+                <div class="text-sm text-amber-800">Download staff data as Excel</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Database Management Section -->
+        <div class="bg-amber-100 rounded-lg p-6 border border-amber-200" role="region" aria-labelledby="managementTitle">
+          <h4 id="managementTitle" class="text-lg font-semibold text-amber-900 mb-4">
+            <i class="fas fa-tools mr-2" aria-label="Tools icon"></i>
+            Database Management
+          </h4>
+          <div class="space-y-3" role="group" aria-label="Database management options">
+            <button id="viewRawDataBtn" class="w-full flex items-center justify-between px-4 py-3 bg-amber-25 border border-amber-300 rounded-lg hover:bg-amber-50 focus:ring-4 focus:ring-blue-300 focus:outline-none transition duration-200"
+                    aria-label="View raw database tables and records">
+              <div class="flex items-center">
+                <i class="fas fa-table text-blue-600 mr-3" aria-hidden="true"></i>
+                <div class="text-left">
+                  <div class="font-medium text-amber-900">View Raw Database</div>
+                  <div class="text-sm text-amber-800">Inspect database tables and records</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right text-amber-600" aria-hidden="true"></i>
+            </button>
+            <button id="backupDataBtn" class="w-full flex items-center justify-between px-4 py-3 bg-amber-25 border border-amber-300 rounded-lg hover:bg-amber-50 focus:ring-4 focus:ring-blue-300 focus:outline-none transition duration-200"
+                    aria-label="Create a backup of all database data">
+              <div class="flex items-center">
+                <i class="fas fa-save text-blue-600 mr-3" aria-hidden="true"></i>
+                <div class="text-left">
+                  <div class="font-medium text-amber-900">Backup Database</div>
+                  <div class="text-sm text-amber-800">Create a backup of all data</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right text-amber-600" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Recent Activity Section -->
+        <div class="bg-amber-50 rounded-lg p-6 border border-amber-200" role="region" aria-labelledby="activityTitle">
+          <h4 id="activityTitle" class="text-lg font-semibold text-amber-900 mb-4">
+            <i class="fas fa-clock mr-2" aria-label="Clock icon"></i>
+            Recent Activity
+          </h4>
+          <div id="recentActivity" class="space-y-3" role="log" aria-live="polite" aria-label="Recent activity log">
+            <div class="text-center text-amber-600 py-4">
+              <i class="fas fa-spinner fa-spin text-2xl mb-2" aria-label="Loading icon"></i>
+              <p>Loading recent activity...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+    
+    document.getElementById('siteDataContent').innerHTML = content
+    this.loadSiteDataStats()
+    this.setupSiteDataEventListeners()
+    this.showModal('siteDataModal')
   }
 
   async handleStoreSubmit(e) {
@@ -231,6 +451,113 @@ class JewelryStoreApp {
     }
   }
 
+  async loadSiteDataStats() {
+    try {
+      // Load database statistics
+      const statsResponse = await axios.get('/api/site-data/stats')
+      const stats = statsResponse.data
+      
+      document.getElementById('totalStores').textContent = stats.totalStores || 0
+      document.getElementById('totalStaff').textContent = stats.totalStaff || 0
+      document.getElementById('totalCustomFields').textContent = stats.totalCustomFields || 0
+      
+      // Load recent activity
+      const activityResponse = await axios.get('/api/site-data/activity')
+      const activities = activityResponse.data
+      
+      const activityHtml = activities.length > 0 
+        ? activities.slice(0, 5).map(activity => `
+            <div class="flex items-start space-x-3 p-3 bg-white rounded-lg border">
+              <div class="flex-shrink-0">
+                <i class="fas ${activity.icon} text-${activity.color}-600"></i>
+              </div>
+              <div class="flex-1">
+                <p class="text-sm font-medium text-gray-900">${activity.title}</p>
+                <p class="text-xs text-gray-600">${activity.description}</p>
+                <p class="text-xs text-gray-500 mt-1">${activity.timestamp}</p>
+              </div>
+            </div>
+          `).join('')
+        : `<div class="text-center text-gray-500 py-4">
+            <i class="fas fa-history text-2xl mb-2"></i>
+            <p>No recent activity</p>
+           </div>`
+      
+      document.getElementById('recentActivity').innerHTML = activityHtml
+    } catch (error) {
+      console.error('Error loading site data stats:', error)
+      document.getElementById('totalStores').textContent = 'Error'
+      document.getElementById('totalStaff').textContent = 'Error'
+      document.getElementById('totalCustomFields').textContent = 'Error'
+      document.getElementById('recentActivity').innerHTML = `
+        <div class="text-center text-red-500 py-4">
+          <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+          <p>Error loading data</p>
+        </div>`
+    }
+  }
+
+  setupSiteDataEventListeners() {
+    // Export buttons
+    document.getElementById('exportStoresBtn').addEventListener('click', () => {
+      this.exportData('stores')
+    })
+    
+    document.getElementById('exportStaffBtn').addEventListener('click', () => {
+      this.exportData('staff')
+    })
+    
+    // Database management buttons
+    document.getElementById('viewRawDataBtn').addEventListener('click', () => {
+      this.showRawDatabase()
+    })
+    
+    document.getElementById('backupDataBtn').addEventListener('click', () => {
+      this.backupDatabase()
+    })
+  }
+
+  async exportData(type) {
+    try {
+      const button = document.getElementById(`export${type.charAt(0).toUpperCase() + type.slice(1)}Btn`)
+      button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Exporting...'
+      button.disabled = true
+      
+      const response = await axios.get(`/api/site-data/export/${type}`, {
+        responseType: 'blob'
+      })
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${type}_export_${new Date().toISOString().split('T')[0]}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+      
+      this.showNotification(`${type.charAt(0).toUpperCase() + type.slice(1)} data exported successfully!`, 'success')
+    } catch (error) {
+      console.error(`Error exporting ${type}:`, error)
+      this.showNotification(`Error exporting ${type} data`, 'error')
+    } finally {
+      const button = document.getElementById(`export${type.charAt(0).toUpperCase() + type.slice(1)}Btn`)
+      button.innerHTML = `<i class="fas fa-file-excel mr-2"></i>Export All ${type.charAt(0).toUpperCase() + type.slice(1)}`
+      button.disabled = false
+    }
+  }
+
+  showRawDatabase() {
+    // This could open another modal or navigate to a database viewer
+    this.showNotification('Raw database viewer coming soon!', 'info')
+  }
+
+  backupDatabase() {
+    // This would trigger a database backup
+    this.showNotification('Database backup feature coming soon!', 'info')
+  }
+
   async openStore(storeId) {
     try {
       const response = await axios.get(`/api/stores/${storeId}`)
@@ -242,29 +569,173 @@ class JewelryStoreApp {
     }
   }
 
+  uploadStorePicture(storeId) {
+    // Create a hidden file input element
+    const fileInput = document.createElement('input')
+    fileInput.type = 'file'
+    fileInput.accept = 'image/*'
+    fileInput.style.display = 'none'
+    
+    // Handle file selection
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0]
+      if (!file) return
+      
+      try {
+        // Show loading state
+        const button = document.querySelector(`button[onclick="app.uploadStorePicture(${storeId})"]`)
+        if (button) {
+          button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Uploading...'
+          button.disabled = true
+        }
+        
+        // Create FormData and upload file
+        const formData = new FormData()
+        formData.append('file', file)
+        
+        const uploadResponse = await axios.post('/api/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        
+        // Update store with new picture URL (you may want to store multiple pictures)
+        // For now, we'll add it to a pictures array or similar
+        // This depends on your backend implementation
+        
+        this.showNotification('Picture uploaded successfully!', 'success')
+        
+        // Refresh the store details to show new picture
+        await this.openStore(storeId)
+        
+      } catch (error) {
+        console.error('Error uploading picture:', error)
+        this.showNotification('Error uploading picture', 'error')
+      } finally {
+        // Reset button state
+        const button = document.querySelector(`button[onclick="app.uploadStorePicture(${storeId})"]`)
+        if (button) {
+          button.innerHTML = '<i class="fas fa-camera mr-1"></i>Add Photo'
+          button.disabled = false
+        }
+      }
+    })
+    
+    // Trigger file selection
+    document.body.appendChild(fileInput)
+    fileInput.click()
+    document.body.removeChild(fileInput)
+  }
+
   showStoreDetails() {
     const { store, staff } = this.currentStore
     
+    // Get store hours from custom sections
+    const storeHours = this.getStoreHours(store)
+    
+    // Check for RJO affiliation
+    const rjoAffiliation = store.name && store.name.toUpperCase().includes('RJO') ? 'RJO' : 'N/A'
+    
     const content = `
-      <div class="space-y-6">
-        <!-- Store Header -->
-        <div class="border-b pb-4">
-          <div class="flex items-center space-x-4 mb-3">
-            ${store.logo_url ? 
-              `<img src="${store.logo_url}" alt="${store.name}" class="w-16 h-16 rounded-full object-cover">` :
-              `<div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center">
-                <i class="fas fa-gem text-purple-600 text-2xl"></i>
-               </div>`
-            }
-            <div>
-              <h2 class="text-2xl font-bold text-gray-800">${store.name}</h2>
-              <p class="text-gray-600">${store.description || 'No description'}</p>
+      <div class="max-w-6xl mx-auto">
+        <!-- Store Header Section -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div class="flex items-start justify-between mb-6">
+            <div class="flex items-center space-x-6">
+              ${store.logo_url ? 
+                `<img src="${store.logo_url}" alt="${store.name}" class="w-20 h-20 rounded-full object-cover shadow-md">` :
+                `<div class="w-20 h-20 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center shadow-md">
+                  <i class="fas fa-gem text-white text-2xl"></i>
+                 </div>`
+              }
+              <div>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">${store.name}</h1>
+                <p class="text-gray-600 mb-2">${this.getStoreAddress(store) || 'No address available'}</p>
+                ${store.description ? `<p class="text-sm text-gray-500">${store.description}</p>` : ''}
+              </div>
             </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex space-x-2">
+              <button onclick="app.editStoreProfile(${store.id})" 
+                      class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200">
+                <i class="fas fa-edit mr-2"></i>Edit Account
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <!-- Store Pictures Section -->
+          <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-lg font-semibold text-gray-800">
+                <i class="fas fa-images text-blue-600 mr-2"></i>
+                Store Pictures
+              </h3>
+              <button onclick="app.uploadStorePicture(${store.id})" 
+                      class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition duration-200">
+                <i class="fas fa-camera mr-1"></i>Add Photo
+              </button>
+            </div>
+            <div id="storePictures-${store.id}" class="grid grid-cols-2 gap-3">
+              <!-- Store pictures will be loaded here -->
+              <div class="aspect-square bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
+                <div class="text-center text-gray-500">
+                  <i class="fas fa-camera text-2xl mb-2"></i>
+                  <p class="text-sm">Add Store Photos</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Store Hours Section -->
+          <div class="bg-white rounded-lg shadow-sm p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+              <i class="fas fa-clock text-green-600 mr-2"></i>
+              Store Hours
+            </h3>
+            <div class="space-y-2">
+              ${storeHours.length > 0 ? 
+                storeHours.map(hours => `
+                  <div class="flex justify-between py-1">
+                    <span class="font-medium text-gray-700">${hours.day}:</span>
+                    <span class="text-gray-600">${hours.hours}</span>
+                  </div>
+                `).join('') :
+                `<div class="text-center text-gray-500 py-4">
+                  <i class="fas fa-clock text-2xl mb-2"></i>
+                  <p class="text-sm">No store hours available</p>
+                </div>`
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Affiliations Section -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">
+            <i class="fas fa-handshake text-purple-600 mr-2"></i>
+            Affiliations:
+          </h3>
+          <div class="flex items-center space-x-3">
+            <span class="px-3 py-1 rounded-full text-sm font-medium ${rjoAffiliation === 'RJO' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}">
+              ${rjoAffiliation}
+            </span>
+          </div>
+        </div>
+
+        <!-- Contact & Details Section -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">
+            <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+            Account Details
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            ${this.renderCustomSections(store)}
           </div>
         </div>
         
         <!-- Staff Section -->
-        <div>
+        <div class="bg-white rounded-lg shadow-sm p-6">
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-semibold text-gray-800">
               <i class="fas fa-users text-green-600 mr-2"></i>
@@ -282,26 +753,12 @@ class JewelryStoreApp {
             </div>
           </div>
           
-          <!-- Bulk Import Instructions -->
-          <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div class="flex items-start space-x-3">
-              <i class="fas fa-info-circle text-blue-600 mt-1"></i>
-              <div class="flex-1">
-                <h4 class="font-medium text-blue-800 mb-1">Quick Tip: Bulk Import</h4>
-                <p class="text-sm text-blue-700 mb-2">Save time by importing multiple staff profiles from an Excel file.</p>
-                <a href="/api/excel-template/staff" target="_blank" 
-                   class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium">
-                  <i class="fas fa-download mr-1"></i>Download Excel Template
-                </a>
-              </div>
-            </div>
-          </div>
-          
-          <div class="space-y-3">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             ${staff.length === 0 ? 
-              `<div class="text-center text-gray-500 py-6">
-                <i class="fas fa-user-plus text-3xl mb-3"></i>
-                <p>No staff members added yet. Click "Add Staff" to get started!</p>
+              `<div class="col-span-full text-center text-gray-500 py-8">
+                <i class="fas fa-user-plus text-4xl mb-3"></i>
+                <p class="mb-2">No staff members added yet</p>
+                <p class="text-sm">Click "Add Staff" or "Import Excel" to get started</p>
                </div>` :
               staff.map(member => `
                 <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition duration-200 cursor-pointer"
@@ -325,10 +782,25 @@ class JewelryStoreApp {
             }
           </div>
         </div>
+        
+        <!-- Visit History Section -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-calendar-alt text-green-600 mr-2"></i>
+            Visit History
+          </h3>
+          <div id="visitHistory-${store.id}" class="space-y-3">
+            <div class="flex items-center justify-center py-4">
+              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+              <span class="ml-2 text-sm text-gray-500">Loading visit history...</span>
+            </div>
+          </div>
+        </div>
       </div>
     `
     
     document.getElementById('storeModalContent').innerHTML = content
+    this.loadVisitHistory(store.id)
     this.showModal('storeModal')
   }
 
@@ -634,6 +1106,206 @@ class JewelryStoreApp {
   closeModal(modalId) {
     document.getElementById(modalId).classList.add('hidden')
     document.body.style.overflow = 'auto'
+  }
+
+  showVisitModal() {
+    const today = new Date().toISOString().split('T')[0] // Get today's date in YYYY-MM-DD format
+    const currentTime = new Date().toTimeString().slice(0, 5) // Get current time in HH:MM format
+    
+    const content = `
+      <form id="visitForm" class="space-y-6" role="form" aria-labelledby="visitFormTitle">
+        <h4 id="visitFormTitle" class="text-lg font-semibold text-gray-900 mb-4">Record Account Visit</h4>
+        
+        <!-- Account Selection -->
+        <div>
+          <label for="visitAccountSelect" class="block text-sm font-medium text-gray-700 mb-2">
+            <i class="fas fa-building mr-1" aria-hidden="true"></i>
+            Account Name *
+          </label>
+          <select id="visitAccountSelect" name="storeId" required 
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-4 focus:ring-blue-300 focus:border-blue-500 focus:outline-none bg-white text-gray-900"
+                  aria-describedby="accountHelp">
+            <option value="">-- Select an account --</option>
+            ${this.stores.map(store => `
+              <option value="${store.id}">${store.name}</option>
+            `).join('')}
+          </select>
+          <div id="accountHelp" class="text-xs text-gray-600 mt-1">Choose the account you visited today</div>
+        </div>
+        
+        <!-- Visit Date -->
+        <div>
+          <label for="visitDate" class="block text-sm font-medium text-gray-700 mb-2">
+            <i class="fas fa-calendar mr-1" aria-hidden="true"></i>
+            Visit Date *
+          </label>
+          <input type="date" id="visitDate" name="visitDate" required 
+                 value="${today}"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-4 focus:ring-blue-300 focus:border-blue-500 focus:outline-none bg-white text-gray-900"
+                 aria-describedby="dateHelp">
+          <div id="dateHelp" class="text-xs text-gray-600 mt-1">Date of your visit</div>
+        </div>
+        
+        <!-- Visit Time -->
+        <div>
+          <label for="visitTime" class="block text-sm font-medium text-gray-700 mb-2">
+            <i class="fas fa-clock mr-1" aria-hidden="true"></i>
+            Visit Time
+          </label>
+          <input type="time" id="visitTime" name="visitTime" 
+                 value="${currentTime}"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-4 focus:ring-blue-300 focus:border-blue-500 focus:outline-none bg-white text-gray-900"
+                 aria-describedby="timeHelp">
+          <div id="timeHelp" class="text-xs text-gray-600 mt-1">Time of your visit (optional)</div>
+        </div>
+        
+        <!-- Visit Notes -->
+        <div>
+          <label for="visitNotes" class="block text-sm font-medium text-gray-700 mb-2">
+            <i class="fas fa-sticky-note mr-1" aria-hidden="true"></i>
+            Visit Notes
+          </label>
+          <textarea id="visitNotes" name="notes" rows="4"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-4 focus:ring-blue-300 focus:border-blue-500 focus:outline-none bg-white text-gray-900"
+                    aria-describedby="notesHelp"
+                    placeholder="What happened during this visit? Key discussions, outcomes, next steps, etc."></textarea>
+          <div id="notesHelp" class="text-xs text-gray-600 mt-1">Optional: Notes about your visit, discussions, or follow-up items</div>
+        </div>
+        
+        <!-- Submit Buttons -->
+        <div class="flex space-x-3 pt-4 border-t border-gray-200" role="group" aria-label="Form actions">
+          <button type="submit" 
+                  class="flex-1 bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 focus:outline-none text-white py-3 px-4 rounded-lg transition duration-200 font-medium"
+                  aria-label="Save visit record">
+            <i class="fas fa-save mr-2" aria-hidden="true"></i>Record Visit
+          </button>
+          <button type="button" onclick="app.closeModal('visitModal')"
+                  class="flex-1 bg-gray-300 hover:bg-gray-400 focus:ring-4 focus:ring-gray-300 focus:outline-none text-gray-700 py-3 px-4 rounded-lg transition duration-200 font-medium"
+                  aria-label="Cancel and close form">
+            <i class="fas fa-times mr-2" aria-hidden="true"></i>Cancel
+          </button>
+        </div>
+      </form>
+    `
+    
+    document.getElementById('visitModalContent').innerHTML = content
+    document.getElementById('visitForm').addEventListener('submit', (e) => this.handleVisitSubmit(e))
+    this.showModal('visitModal')
+  }
+
+  async handleVisitSubmit(e) {
+    e.preventDefault()
+    
+    const formData = new FormData(e.target)
+    const visitData = {
+      store_id: parseInt(formData.get('storeId')),
+      visit_date: formData.get('visitDate'),
+      visit_time: formData.get('visitTime'),
+      notes: formData.get('notes')
+    }
+    
+    // Validate required fields
+    if (!visitData.store_id || !visitData.visit_date) {
+      this.showNotification('Please select an account and visit date', 'error')
+      return
+    }
+    
+    try {
+      const response = await axios.post('/api/visits', visitData)
+      
+      if (response.data.id) {
+        this.showNotification('Visit recorded successfully!', 'success')
+        this.closeModal('visitModal')
+        
+        // Refresh store list to show any updates
+        await this.loadStores()
+      } else {
+        this.showNotification('Failed to record visit', 'error')
+      }
+    } catch (error) {
+      console.error('Error recording visit:', error)
+      this.showNotification(error.response?.data?.error || 'Failed to record visit', 'error')
+    }
+  }
+
+  async loadVisitHistory(storeId) {
+    const visitHistoryDiv = document.getElementById(`visitHistory-${storeId}`)
+    
+    try {
+      const response = await axios.get(`/api/stores/${storeId}/visits`)
+      const visits = response.data
+      
+      if (visits.length === 0) {
+        visitHistoryDiv.innerHTML = `
+          <div class="text-center py-8 text-gray-500">
+            <i class="fas fa-calendar-times text-3xl mb-2"></i>
+            <p>No visits recorded yet</p>
+            <p class="text-xs mt-1">Use "Today's Visit" button to record your first visit</p>
+          </div>
+        `
+        return
+      }
+      
+      visitHistoryDiv.innerHTML = `
+        <div class="space-y-3 max-h-64 overflow-y-auto">
+          ${visits.map(visit => {
+            const visitDate = new Date(visit.visit_date)
+            const formattedDate = visitDate.toLocaleDateString('en-US', {
+              weekday: 'short',
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            })
+            
+            const timeDisplay = visit.visit_time ? 
+              ` at ${new Date(`2000-01-01T${visit.visit_time}`).toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              })}` : ''
+            
+            return `
+              <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-green-500">
+                <div class="flex items-start justify-between">
+                  <div class="flex-1">
+                    <div class="flex items-center mb-1">
+                      <i class="fas fa-calendar text-green-600 mr-2 text-sm"></i>
+                      <span class="font-medium text-gray-800">${formattedDate}${timeDisplay}</span>
+                    </div>
+                    ${visit.notes ? `
+                      <div class="mt-2">
+                        <i class="fas fa-sticky-note text-blue-500 mr-2 text-sm"></i>
+                        <span class="text-sm text-gray-700">${visit.notes}</span>
+                      </div>
+                    ` : ''}
+                    <div class="text-xs text-gray-500 mt-2">
+                      <i class="fas fa-clock mr-1"></i>
+                      Recorded: ${new Date(visit.created_at).toLocaleDateString('en-US')}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `
+          }).join('')}
+        </div>
+        
+        <div class="mt-4 pt-4 border-t border-gray-200">
+          <button onclick="app.showVisitModal()" 
+                  class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition duration-200 text-sm font-medium">
+            <i class="fas fa-plus mr-2"></i>
+            Record New Visit
+          </button>
+        </div>
+      `
+    } catch (error) {
+      console.error('Error loading visit history:', error)
+      visitHistoryDiv.innerHTML = `
+        <div class="text-center py-4 text-red-500">
+          <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+          <p>Error loading visit history</p>
+        </div>
+      `
+    }
   }
 
   showBulkImportForm(storeId) {
@@ -1322,6 +1994,10 @@ Precious Gems Co.	Michael Chen	(424) 555-0789	789 Sunset Blvd, West Hollywood, C
       filteredStores = filteredStores.filter(store => 
         store.name && store.name.toLowerCase().includes('prospect')
       )
+    } else if (filterValue === 'non-prospect') {
+      filteredStores = filteredStores.filter(store => 
+        store.name && !store.name.toLowerCase().includes('prospect')
+      )
     } else if (filterValue === 'active') {
       filteredStores = filteredStores.filter(store => {
         // Check if store has "Active" status in custom sections
@@ -1371,6 +2047,9 @@ Precious Gems Co.	Michael Chen	(424) 555-0789	789 Sunset Blvd, West Hollywood, C
     
     if (filterValue === 'prospect') {
       statusText = 'Showing prospects only'
+      hasActiveFilters = true
+    } else if (filterValue === 'non-prospect') {
+      statusText = 'Showing non-prospects only'
       hasActiveFilters = true
     } else if (filterValue === 'active') {
       statusText = 'Showing active accounts only'
