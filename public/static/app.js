@@ -72,6 +72,11 @@ class JewelryStoreApp {
       this.closeModal('calendarModal')
     })
 
+    // Logout button
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      this.logout()
+    })
+
     // Click outside modal to close
     document.getElementById('storeModal').addEventListener('click', (e) => {
       if (e.target.id === 'storeModal') this.closeModal('storeModal')
@@ -1119,6 +1124,18 @@ class JewelryStoreApp {
   closeModal(modalId) {
     document.getElementById(modalId).classList.add('hidden')
     document.body.style.overflow = 'auto'
+  }
+
+  async logout() {
+    if (confirm('Are you sure you want to logout?')) {
+      try {
+        await axios.post('/api/logout')
+        window.location.reload()
+      } catch (error) {
+        console.error('Logout error:', error)
+        alert('Error logging out. Please try refreshing the page.')
+      }
+    }
   }
 
   showVisitModal() {

@@ -13,6 +13,24 @@ const app = new Hono<{ Bindings: Bindings }>()
 // Enable CORS for API routes
 app.use('/api/*', cors())
 
+// Protect all API routes except login/logout
+app.use('/api/*', async (c, next) => {
+  const path = c.req.path
+  if (path === '/api/login' || path === '/api/logout') {
+    await next()
+    return
+  }
+  
+  const cookies = c.req.header('Cookie') || ''
+  const authCookie = cookies.split('; ').find(row => row.startsWith('auth='))
+  
+  if (authCookie && authCookie.split('=')[1] === 'authenticated') {
+    await next()
+  } else {
+    return c.json({ error: 'Authentication required' }, 401)
+  }
+})
+
 // Serve static files
 app.use('/static/*', serveStatic({ root: './public' }))
 
@@ -1048,8 +1066,118 @@ app.get('/api/calendar/visits', async (c) => {
   }
 })
 
-// Main application page
-app.get('/', (c) => {
+// Authentication endpoints
+app.post('/api/login', async (c) => {
+  const { password } = await c.req.json()
+  
+  if (password === 'Family') {
+    // Set authentication cookie that expires in 24 hours
+    c.res.headers.set('Set-Cookie', `auth=authenticated; Max-Age=86400; Path=/; HttpOnly; SameSite=Strict`)
+    return c.json({ success: true, message: 'Login successful' })
+  } else {
+    return c.json({ success: false, message: 'Invalid password' }, 401)
+  }
+})
+
+app.post('/api/logout', (c) => {
+  // Clear authentication cookie
+  c.res.headers.set('Set-Cookie', `auth=; Max-Age=0; Path=/; HttpOnly; SameSite=Strict`)
+  return c.json({ success: true, message: 'Logged out successfully' })
+})
+
+// Authentication middleware
+const requireAuth = async (c, next) => {
+  const cookies = c.req.header('Cookie') || ''
+  const authCookie = cookies.split('; ').find(row => row.startsWith('auth='))
+  
+  if (authCookie && authCookie.split('=')[1] === 'authenticated') {
+    await next()
+  } else {
+    return c.html(
+      <div>
+        <link href="/static/style.css" rel="stylesheet"/>
+        <div className="min-h-screen bg-amber-50 flex items-center justify-center px-4">
+          <div className="max-w-md w-full">
+            <div className="bg-white rounded-lg shadow-lg p-8 border border-amber-200">
+              <div className="text-center mb-8">
+                <i className="fas fa-gem text-blue-600 text-4xl mb-4"></i>
+                <h1 className="text-2xl font-bold text-amber-900 mb-2">Jewelry Store Profiles</h1>
+                <p className="text-amber-700">Please enter the password to access the system</p>
+              </div>
+              
+              <form id="loginForm" className="space-y-6">
+                <div>
+                  <label for="password" className="block text-sm font-medium text-amber-900 mb-2">
+                    <i className="fas fa-lock mr-2"></i>Password
+                  </label>
+                  <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    required 
+                    className="w-full px-4 py-3 border border-amber-300 rounded-lg focus:ring-4 focus:ring-blue-300 focus:border-blue-500 focus:outline-none bg-white text-gray-900"
+                    placeholder="Enter password"
+                    autocomplete="current-password"
+                  />
+                </div>
+                
+                <button 
+                  type="submit" 
+                  className="w-full bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 focus:outline-none text-white py-3 px-4 rounded-lg transition duration-200 font-medium"
+                >
+                  <i className="fas fa-sign-in-alt mr-2"></i>
+                  Login
+                </button>
+              </form>
+              
+              <div id="loginError" className="mt-4 text-red-600 text-sm text-center hidden"></div>
+              
+              <div className="mt-6 text-center">
+                <p className="text-xs text-gray-500">
+                  <i className="fas fa-shield-alt mr-1"></i>
+                  Secure access to jewelry store management system
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            document.addEventListener('DOMContentLoaded', function() {
+              document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                e.preventDefault()
+                const password = document.getElementById('password').value
+                const errorDiv = document.getElementById('loginError')
+                
+                try {
+                  const response = await axios.post('/api/login', { password })
+                  if (response.data.success) {
+                    window.location.reload()
+                  }
+                } catch (error) {
+                  errorDiv.textContent = error.response?.data?.message || 'Login failed'
+                  errorDiv.classList.remove('hidden')
+                  document.getElementById('password').value = ''
+                  document.getElementById('password').focus()
+                }
+              })
+              
+              // Focus password field on load
+              document.getElementById('password').focus()
+            })
+          `
+        }}></script>
+      </div>
+    )
+  }
+}
+
+// Apply authentication middleware to main route
+app.get('/', requireAuth, (c) => {
   return c.render(
     <div>
       <a href="#main-content" className="skip-link">Skip to main content</a>
@@ -1090,6 +1218,15 @@ app.get('/', (c) => {
               >
                 <i className="fas fa-database mr-2" aria-hidden="true"></i>
                 Site Data
+              </button>
+              <button 
+                id="logoutBtn" 
+                className="bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 focus:outline-none text-white px-4 py-2 rounded-lg transition duration-200 flex items-center text-sm shadow-md"
+                aria-label="Logout from the system"
+                tabindex="0"
+              >
+                <i className="fas fa-sign-out-alt mr-2" aria-hidden="true"></i>
+                Logout
               </button>
             </div>
           </header>
