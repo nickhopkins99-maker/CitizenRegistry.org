@@ -937,19 +937,55 @@ app.get('/api/visits/recent', async (c) => {
   }
 })
 
+// Get a single visit record
+app.get('/api/visits/:id', async (c) => {
+  const { env } = c
+  const visitId = c.req.param('id')
+  await initDB(env.DB)
+  
+  try {
+    const visit = await env.DB.prepare(`
+      SELECT v.*, s.name as store_name 
+      FROM visits v
+      JOIN stores s ON v.store_id = s.id
+      WHERE v.id = ?
+    `).bind(visitId).first()
+    
+    if (!visit) {
+      return c.json({ error: 'Visit not found' }, 404)
+    }
+    
+    return c.json({ success: true, visit })
+  } catch (error) {
+    console.error('Error fetching visit:', error)
+    return c.json({ error: 'Failed to fetch visit' }, 500)
+  }
+})
+
 // Update a visit record
 app.put('/api/visits/:id', async (c) => {
   const { env } = c
   const visitId = c.req.param('id')
-  const { visit_date, visit_time, notes } = await c.req.json()
+  const { store_id, visit_date, visit_time, notes } = await c.req.json()
   await initDB(env.DB)
+  
+  // Validate required fields
+  if (!store_id || !visit_date) {
+    return c.json({ error: 'Store ID and visit date are required' }, 400)
+  }
+  
+  // Verify store exists
+  const store = await env.DB.prepare('SELECT id FROM stores WHERE id = ?').bind(store_id).first()
+  if (!store) {
+    return c.json({ error: 'Store not found' }, 404)
+  }
   
   try {
     await env.DB.prepare(`
       UPDATE visits 
-      SET visit_date = ?, visit_time = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+      SET store_id = ?, visit_date = ?, visit_time = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).bind(visit_date, visit_time, notes, visitId).run()
+    `).bind(store_id, visit_date, visit_time, notes, visitId).run()
     
     return c.json({ success: true, message: 'Visit updated successfully' })
   } catch (error) {

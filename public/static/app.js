@@ -1406,13 +1406,29 @@ class JewelryStoreApp {
                                 }) : 'No time'
                               
                               return `
-                                <div class="text-sm">
-                                  <div class="flex items-start">
-                                    <i class="fas fa-store text-blue-600 mr-2 mt-0.5 text-xs"></i>
-                                    <div class="flex-1">
-                                      <div class="font-medium text-gray-800">${visit.store_name}</div>
-                                      <div class="text-xs text-gray-500">${timeDisplay}</div>
-                                      ${visit.notes ? `<div class="text-xs text-gray-600 mt-1">${visit.notes.substring(0, 50)}${visit.notes.length > 50 ? '...' : ''}</div>` : ''}
+                                <div class="text-sm border border-gray-200 rounded p-2 hover:bg-gray-50 transition duration-200">
+                                  <div class="flex items-start justify-between">
+                                    <div class="flex items-start flex-1">
+                                      <i class="fas fa-store text-blue-600 mr-2 mt-0.5 text-xs"></i>
+                                      <div class="flex-1">
+                                        <div class="font-medium text-gray-800">${visit.store_name}</div>
+                                        <div class="text-xs text-gray-500">${timeDisplay}</div>
+                                        ${visit.notes ? `<div class="text-xs text-gray-600 mt-1">${visit.notes.substring(0, 50)}${visit.notes.length > 50 ? '...' : ''}</div>` : ''}
+                                      </div>
+                                    </div>
+                                    <div class="flex space-x-1 ml-2">
+                                      <button onclick="app.editVisit(${visit.id})" 
+                                              class="text-blue-600 hover:text-blue-800 p-1 rounded transition duration-200" 
+                                              title="Edit visit"
+                                              aria-label="Edit visit to ${visit.store_name}">
+                                        <i class="fas fa-edit text-xs"></i>
+                                      </button>
+                                      <button onclick="app.deleteVisit(${visit.id})" 
+                                              class="text-red-600 hover:text-red-800 p-1 rounded transition duration-200" 
+                                              title="Delete visit"
+                                              aria-label="Delete visit to ${visit.store_name}">
+                                        <i class="fas fa-trash text-xs"></i>
+                                      </button>
                                     </div>
                                   </div>
                                 </div>
@@ -1539,7 +1555,9 @@ class JewelryStoreApp {
           ${visits.length > 0 ? `
             <div class="space-y-1">
               ${visits.slice(0, 2).map(visit => `
-                <div class="bg-green-500 text-white text-xs px-1 py-0.5 rounded truncate" title="${visit.store_name} - ${visit.visit_time || 'No time'}${visit.notes ? ' - ' + visit.notes : ''}">
+                <div class="bg-green-500 hover:bg-green-600 text-white text-xs px-1 py-0.5 rounded truncate cursor-pointer transition duration-200 group" 
+                     onclick="app.showVisitActions(${visit.id})" 
+                     title="${visit.store_name} - ${visit.visit_time || 'No time'}${visit.notes ? ' - ' + visit.notes : ''}\n\nClick to edit or delete">
                   <i class="fas fa-circle text-xs mr-1"></i>${visit.store_name.substring(0, 10)}${visit.store_name.length > 10 ? '...' : ''}
                 </div>
               `).join('')}
@@ -1566,6 +1584,185 @@ class JewelryStoreApp {
     // This would be implemented to navigate between months
     // For now, we'll just reload the current month
     console.log('Calendar navigation not yet implemented')
+  }
+
+  async editVisit(visitId) {
+    try {
+      // First, fetch the visit data to populate the form
+      const response = await axios.get(`/api/visits/${visitId}`)
+      const visit = response.data
+      
+      if (!visit.success) {
+        throw new Error('Visit not found')
+      }
+      
+      const visitData = visit.visit
+      
+      // Show edit form modal
+      const content = `
+        <form id="editVisitForm" class="space-y-6" role="form" aria-labelledby="editVisitFormTitle">
+          <h4 id="editVisitFormTitle" class="text-lg font-semibold text-gray-900 mb-4">Edit Visit Record</h4>
+          
+          <!-- Account Selection -->
+          <div>
+            <label for="editVisitAccountSelect" class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-building mr-1" aria-hidden="true"></i>
+              Account Name *
+            </label>
+            <select id="editVisitAccountSelect" name="storeId" required 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-4 focus:ring-blue-300 focus:border-blue-500 focus:outline-none bg-white text-gray-900">
+              <option value="">-- Select an account --</option>
+              ${this.stores.map(store => `
+                <option value="${store.id}" ${store.id == visitData.store_id ? 'selected' : ''}>${store.name}</option>
+              `).join('')}
+            </select>
+          </div>
+          
+          <!-- Visit Date -->
+          <div>
+            <label for="editVisitDate" class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-calendar mr-1" aria-hidden="true"></i>
+              Visit Date *
+            </label>
+            <input type="date" id="editVisitDate" name="visitDate" required 
+                   value="${visitData.visit_date}"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-4 focus:ring-blue-300 focus:border-blue-500 focus:outline-none bg-white text-gray-900">
+          </div>
+          
+          <!-- Visit Time -->
+          <div>
+            <label for="editVisitTime" class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-clock mr-1" aria-hidden="true"></i>
+              Visit Time
+            </label>
+            <input type="time" id="editVisitTime" name="visitTime" 
+                   value="${visitData.visit_time || ''}"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-4 focus:ring-blue-300 focus:border-blue-500 focus:outline-none bg-white text-gray-900">
+          </div>
+          
+          <!-- Visit Notes -->
+          <div>
+            <label for="editVisitNotes" class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-sticky-note mr-1" aria-hidden="true"></i>
+              Visit Notes
+            </label>
+            <textarea id="editVisitNotes" name="notes" rows="4"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-4 focus:ring-blue-300 focus:border-blue-500 focus:outline-none bg-white text-gray-900"
+                      placeholder="What happened during this visit?">${visitData.notes || ''}</textarea>
+          </div>
+          
+          <!-- Submit Buttons -->
+          <div class="flex space-x-3 pt-4 border-t border-gray-200">
+            <button type="submit" 
+                    class="flex-1 bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 focus:outline-none text-white py-3 px-4 rounded-lg transition duration-200 font-medium">
+              <i class="fas fa-save mr-2" aria-hidden="true"></i>Update Visit
+            </button>
+            <button type="button" onclick="app.closeModal('visitModal')"
+                    class="flex-1 bg-gray-300 hover:bg-gray-400 focus:ring-4 focus:ring-gray-300 focus:outline-none text-gray-700 py-3 px-4 rounded-lg transition duration-200 font-medium">
+              <i class="fas fa-times mr-2" aria-hidden="true"></i>Cancel
+            </button>
+          </div>
+        </form>
+      `
+      
+      document.getElementById('visitModalContent').innerHTML = content
+      document.getElementById('editVisitForm').addEventListener('submit', (e) => this.handleEditVisitSubmit(e, visitId))
+      this.showModal('visitModal')
+      
+    } catch (error) {
+      console.error('Error loading visit for edit:', error)
+      alert('Error loading visit data. Please try again.')
+    }
+  }
+
+  async handleEditVisitSubmit(e, visitId) {
+    e.preventDefault()
+    
+    const formData = new FormData(e.target)
+    const visitData = {
+      store_id: parseInt(formData.get('storeId')),
+      visit_date: formData.get('visitDate'),
+      visit_time: formData.get('visitTime'),
+      notes: formData.get('notes')
+    }
+    
+    // Validate required fields
+    if (!visitData.store_id || !visitData.visit_date) {
+      alert('Please select an account and visit date')
+      return
+    }
+    
+    try {
+      const response = await axios.put(`/api/visits/${visitId}`, visitData)
+      
+      if (response.data.success) {
+        alert('Visit updated successfully!')
+        this.closeModal('visitModal')
+        // Refresh calendar to show updated visit
+        this.showCalendarModal()
+      } else {
+        throw new Error(response.data.error || 'Failed to update visit')
+      }
+    } catch (error) {
+      console.error('Error updating visit:', error)
+      alert('Error updating visit: ' + (error.response?.data?.error || error.message))
+    }
+  }
+
+  async deleteVisit(visitId) {
+    // Get visit details for confirmation
+    try {
+      const response = await axios.get(`/api/visits/${visitId}`)
+      const visit = response.data.visit
+      const storeName = this.stores.find(s => s.id == visit.store_id)?.name || 'Unknown Store'
+      
+      const confirmMessage = `Are you sure you want to delete this visit?\n\nStore: ${storeName}\nDate: ${visit.visit_date}\nTime: ${visit.visit_time || 'No time'}\n\nThis action cannot be undone.`
+      
+      if (!confirm(confirmMessage)) {
+        return
+      }
+      
+      const deleteResponse = await axios.delete(`/api/visits/${visitId}`)
+      
+      if (deleteResponse.data.success) {
+        alert('Visit deleted successfully!')
+        // Refresh calendar to show updated visit list
+        this.showCalendarModal()
+      } else {
+        throw new Error(deleteResponse.data.error || 'Failed to delete visit')
+      }
+    } catch (error) {
+      console.error('Error deleting visit:', error)
+      alert('Error deleting visit: ' + (error.response?.data?.error || error.message))
+    }
+  }
+
+  async showVisitActions(visitId) {
+    try {
+      // Get visit details
+      const response = await axios.get(`/api/visits/${visitId}`)
+      const visit = response.data.visit
+      
+      const timeDisplay = visit.visit_time ? 
+        new Date(`2000-01-01T${visit.visit_time}`).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        }) : 'No time specified'
+      
+      const confirmAction = confirm(`Visit to ${visit.store_name}\nDate: ${visit.visit_date}\nTime: ${timeDisplay}\n${visit.notes ? 'Notes: ' + visit.notes : ''}\n\nWhat would you like to do?\n\nOK = Edit Visit\nCancel = Delete Visit`)
+      
+      if (confirmAction) {
+        // Edit visit
+        this.editVisit(visitId)
+      } else {
+        // Delete visit
+        this.deleteVisit(visitId)
+      }
+    } catch (error) {
+      console.error('Error fetching visit details:', error)
+      alert('Error loading visit details')
+    }
   }
 
   showBulkImportForm(storeId) {
